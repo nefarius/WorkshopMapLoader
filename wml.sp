@@ -2,7 +2,7 @@
 #include <regex>
 #include <system2>
 
-#define PLUGIN_VERSION 		"0.2.0"
+#define PLUGIN_VERSION 		"0.3.0"
 #define PLUGIN_SHORT_NAME	"sm_wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
@@ -30,12 +30,6 @@
 #define MAXPOST MAX_URL_LEN
 #define WAPI_USERAGENT		"Valve/Steam HTTP Client 1.0"
 #define WAPI_GFDETAILS		"http://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
-/*
-#define WAPI_KEY_ERROR		"No API key specified or invalid format, major parts of plugin will not work!"
-#define MAX_KEY_LENGTH		33
-new String:g_SteamAPIKey[MAX_KEY_LENGTH];
-new Handle:g_cvarAPIKey = 	INVALID_HANDLE;
-*/
 
 // Next Map Mode
 // https://forums.alliedmods.net/showthread.php?p=1831213
@@ -68,7 +62,7 @@ public Plugin:myinfo =
 	author = "Nefarius",
 	description = "Advanced Workshop Map Loader and Game Type Adjuster",
 	version = PLUGIN_VERSION,
-	url = "http://nefarius.at/"
+	url = "https://github.com/nefarius/WorkshopMapLoader"
 }
 
 /*
@@ -95,7 +89,6 @@ public OnPluginStart()
 	
 	// *** Cvars ***
 	// Plugin version
-	// NOTE: FCVAR_DONTRECORD doesn't work?!
 	CreateConVar("sm_wml_version", PLUGIN_VERSION, 
 		"Version of Workshop Map Loader", 
 		FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_UNLOGGED|FCVAR_DONTRECORD|FCVAR_REPLICATED|FCVAR_NOTIFY);
@@ -105,15 +98,6 @@ public OnPluginStart()
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	if (g_cvarChangeMode == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_changemode'!");
-	
-	/* THIS IS NOT NEEDED RIGHT NOW!
-	// Fetch Web API key
-	g_cvarAPIKey = CreateConVar("sm_wml_api_key", "", 
-		"The Servers' Steam Web API key. Visit 'https://steamcommunity.com/dev/apikey' if you don't have one.", 
-		FCVAR_PROTECTED|FCVAR_SPONLY);
-	if (g_cvarAPIKey == INVALID_HANDLE)
-		SetFailState("[WML] Couldn't register 'sm_wml_api_key'!");
-	*/
 	
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", DisplayMapList, ADMFLAG_CHANGEMAP, "Display map list of workshop maps");
@@ -139,14 +123,6 @@ public OnPluginStart()
  */
 public OnConfigsExecuted()
 {
-	/* NOT NEEDED RIGHT NOW!
-	// Fetch Web API key
-	GetConVarString(g_cvarAPIKey, g_SteamAPIKey, MAX_KEY_LENGTH);
-	if (IsValidAPIKey(g_SteamAPIKey))
-		GenerateMapList();
-	else
-		LogError(WAPI_KEY_ERROR);
-	*/
 	GenerateMapList();
 }
 
@@ -265,15 +241,6 @@ public Action:PrintDebugOutput(client, args)
  */
 GetPublishedFileDetails(const String:id[])
 {
-	/* NOT NEEDED RIGHT NOW NOT NEEDED RIGHT NOW!!
-	// Valid key needed to contact APi server
-	if (!IsValidAPIKey(g_SteamAPIKey))
-	{
-		LogError(WAPI_KEY_ERROR);
-		return;
-	}
-	*/
-
 	// Build URL
 	decl String:request[MAX_URL_LEN];
 	//Format(request, MAX_URL_LEN, "%s?key=%s", WAPI_GFDETAILS, g_SteamAPIKey);
@@ -579,15 +546,6 @@ GetMapPath(String:id[], String:output[])
 	GetTrieValue(g_WsMapDetails, id, h_MapDetails);
 	GetArrayString(h_MapDetails, MAP_PATH, output, PLATFORM_MAX_PATH + 1);
 }
-
-/*
- * Helper to validate Steam API Key.
- * NOT NEEDED RIGHT NOW!
-bool:IsValidAPIKey(const String:key[])
-{
-	return (SimpleRegexMatch(key, "^[0-9a-f]{32}$", PCRE_CASELESS) > 0);
-}
-*/
 
 /*
  * Build simple list-style map chooser menu.
