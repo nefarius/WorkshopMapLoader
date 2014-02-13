@@ -43,24 +43,17 @@
 
 // Database
 new Handle:g_dbiStorage = 		INVALID_HANDLE;
-new Handle:g_stmtGetPath =		INVALID_HANDLE;
 
+// System
 new g_SelectedMode = 			-1;
 new bool:g_IsChangingLevel =	false;
 new Handle:g_cvarChangeMode = 	INVALID_HANDLE;
 new Handle:h_cvarGameType =		INVALID_HANDLE;
 new Handle:h_cvarGameMode =		INVALID_HANDLE;
 
-new Handle:g_WsMapList = 		INVALID_HANDLE;
-new Handle:g_WsMapDetails = 	INVALID_HANDLE;
+// Menu
 new Handle:g_MapMenu = 			INVALID_HANDLE;
 
-new Handle:g_WsMapsClassic =	INVALID_HANDLE;
-new Handle:g_WsMapsDeathmatch =	INVALID_HANDLE;
-new Handle:g_WsMapsDemolition =	INVALID_HANDLE;
-new Handle:g_WsMapsArmsrace =	INVALID_HANDLE;
-new Handle:g_WsMapsHostage =	INVALID_HANDLE;
-new Handle:g_WsMapsCustom =		INVALID_HANDLE;
 
 public Plugin:myinfo =
 {
@@ -76,24 +69,6 @@ public Plugin:myinfo =
  */
 public OnPluginStart()
 {
-	/* OLD */
-	// All map IDs
-	g_WsMapList = 			CreateArray(MAX_ID_LEN, 0);
-	// Map attributes
-	g_WsMapDetails = 		CreateTrie();
-	// Classic maps
-	g_WsMapsClassic =		CreateArray(MAX_ID_LEN, 0);
-	// Deathmatch maps
-	g_WsMapsDeathmatch =	CreateArray(MAX_ID_LEN, 0);
-	// Demolition maps
-	g_WsMapsDemolition =	CreateArray(MAX_ID_LEN, 0);
-	// Armsrace maps
-	g_WsMapsArmsrace =		CreateArray(MAX_ID_LEN, 0);
-	// Hostage maps
-	g_WsMapsHostage =		CreateArray(MAX_ID_LEN, 0);
-	// Custom maps
-	g_WsMapsCustom =		CreateArray(MAX_ID_LEN, 0);
-	
 	// *** Cvars ***
 	// Plugin version
 	CreateConVar("sm_wml_version", PLUGIN_VERSION, 
@@ -176,28 +151,8 @@ CreateTables()
  */
 public OnPluginEnd()
 {
-	// Do all the clean-up
-	decl String:key[MAX_ID_LEN];
-	new Handle:value = INVALID_HANDLE;
-	for (new i = 0; i < GetTrieSize(g_WsMapDetails); i++)
-	{
-		GetArrayString(g_WsMapList, i, key, MAX_ID_LEN);
-		GetTrieValue(g_WsMapDetails, key, value);
-		CloneHandle(value);
-		RemoveFromTrie(g_WsMapDetails, key);
-	}
-	CloseHandle(g_WsMapDetails);
-	ClearArray(g_WsMapList);
-	CloseHandle(g_WsMapList);
 	if (g_MapMenu != INVALID_HANDLE)
 		CloseHandle(g_MapMenu);
-	
-	CloseHandle(g_WsMapsClassic);
-	CloseHandle(g_WsMapsDeathmatch);
-	CloseHandle(g_WsMapsDemolition);
-	CloseHandle(g_WsMapsArmsrace);
-	CloseHandle(g_WsMapsHostage);
-	CloseHandle(g_WsMapsCustom);
 	
 	// Close database connection
 	if (g_dbiStorage != INVALID_HANDLE)
@@ -435,7 +390,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 #if defined WML_DEBUG
 					PrintToServer("Title: %s", buffer);
 #endif
-					SetMapTitle(StringToInt(id), buffer);
+					DB_SetMapTitle(StringToInt(id), buffer);
 				}
 				else if (StrEqual("tag", buffer, false))
 				{
@@ -444,7 +399,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 #if defined WML_DEBUG
 					PrintToServer("Tag: %s", buffer);
 #endif
-					SetMapTag(StringToInt(id), buffer);
+					DB_SetMapTag(StringToInt(id), buffer);
 				}
 			}
 			else
@@ -488,12 +443,6 @@ public Action:DisplayMapList(client, args)
  */
 Handle:BuildCategoryMenu()
 {
-	// No work if no content
-	if (GetArraySize(g_WsMapList) <= 0)
-	{
-		return INVALID_HANDLE;
-	}
- 
 	// Create main menu handle
 	new Handle:menu = CreateMenu(Menu_SelectedCategory);
 	SetMenuTitle(menu, "Please select map category:");
@@ -528,33 +477,29 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
 			if (StrEqual(info, TAG_Classic, false))
 			{
 				g_SelectedMode = CASUAL;
-				h_MapMenu = BuildMapMenu(g_WsMapsClassic);
 			}
 			else if (StrEqual(info, TAG_Deathmatch, false))
 			{
 				g_SelectedMode = DEATHMATCH;
-				h_MapMenu = BuildMapMenu(g_WsMapsDeathmatch);
 			}
 			else if (StrEqual(info, TAG_Demolition, false))
 			{
 				g_SelectedMode = DEMOLITION;
-				h_MapMenu = BuildMapMenu(g_WsMapsDemolition);
 			}
 			else if (StrEqual(info, TAG_Armsrace, false))
 			{
 				g_SelectedMode = ARMSRACE;
-				h_MapMenu = BuildMapMenu(g_WsMapsArmsrace);
 			}
 			else if (StrEqual(info, TAG_Hostage, false))
 			{
 				g_SelectedMode = COMPETITIVE;
-				h_MapMenu = BuildMapMenu(g_WsMapsHostage);
 			}
 			else if (StrEqual(info, TAG_Custom, false))
 			{
 				g_SelectedMode = CASUAL;
-				h_MapMenu = BuildMapMenu(g_WsMapsCustom);
 			}
+			
+			h_MapMenu = BuildMapMenu(info);
 			
 			DisplayMenu(h_MapMenu, param1, MENU_TIME_FOREVER);
 		}
@@ -568,20 +513,9 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
 }
 
 /*
- * Helper to get map ID and Title from array index.
- */
-GetMapIdTitle(Handle:mapList, index, String:id[], String:output[])
-{
-	new Handle:h_MapDetails = INVALID_HANDLE;
-	GetArrayString(mapList, index, id, MAX_ID_LEN);
-	GetTrieValue(g_WsMapDetails, id, h_MapDetails);
-	GetArrayString(h_MapDetails, MAP_TITLE, output, MAX_ATTRIB_LEN);
-}
-
-/*
  * Adds skeleton of new map to database.
  */
- AddNewMap(id, String:path[])
+ DB_AddNewMap(id, String:path[])
  {
 	new String:query[255];
 	Format(query, sizeof(query), " \
@@ -599,7 +533,7 @@ GetMapIdTitle(Handle:mapList, index, String:id[], String:output[])
  /*
  * Adds title to map with specified id.
  */
- SetMapTitle(id, String:title[])
+ DB_SetMapTitle(id, String:title[])
  {
 	new String:query[255];
 	Format(query, sizeof(query), " \
@@ -617,7 +551,7 @@ GetMapIdTitle(Handle:mapList, index, String:id[], String:output[])
  /*
  * Adds tag to map with specified id.
  */
- SetMapTag(id, String:tag[])
+ DB_SetMapTag(id, String:tag[])
  {
 	new String:query[255];
 	Format(query, sizeof(query), " \
@@ -637,33 +571,22 @@ GetMapIdTitle(Handle:mapList, index, String:id[], String:output[])
 /*
  * Helper to get local map path from ID.
  */
-bool:GetMapPath(id, String:path[])
+bool:DB_GetMapPath(id, String:path[])
 {
-	if (g_stmtGetPath == INVALID_HANDLE)
-	{
-		new String:error[255];
-		if ((g_stmtGetPath = SQL_PrepareQuery(g_dbiStorage, 
-			"SELECT Path FROM wml_workshop_maps WHERE Id = ?", 
-			error, 
-			sizeof(error))) 
-		     == INVALID_HANDLE)
-		{
-			return false;
-		}
-	}
- 
-	SQL_BindParamInt(g_stmtGetPath, 0, id);
-	if (!SQL_Execute(g_stmtGetPath))
-	{
-		return false;
-	}
+	new Handle:h_Query = INVALID_HANDLE;
+	new String:query[255];
 	
-	if (!SQL_FetchRow(g_stmtGetPath))
-	{
+	Format(query, sizeof(query), " \
+		SELECT Path FROM wml_workshop_maps WHERE Id = %d;", id);
+	h_Query = SQL_Query(g_dbiStorage, query);
+
+	if (h_Query == INVALID_HANDLE)
 		return false;
-	}
+			
+	if (!SQL_FetchRow(h_Query))
+		return false;
 	
-	SQL_FetchString(g_stmtGetPath, 0, path, sizeof(path));
+	SQL_FetchString(h_Query, 0, path, strlen(path) + 1);
 	
 	return true;
 }
@@ -671,24 +594,28 @@ bool:GetMapPath(id, String:path[])
 /*
  * Build simple list-style map chooser menu.
  */
-Handle:BuildMapMenu(Handle:category)
+Handle:BuildMapMenu(String:category[])
 {
-	// No work if no content
-	if (GetArraySize(g_WsMapList) <= 0)
-	{
-		return INVALID_HANDLE;
-	}
- 
 	// Create main menu handle
 	new Handle:menu = CreateMenu(Menu_ChangeMap);
 	new String:id[MAX_ID_LEN];
-	new String:buffer[MAX_ATTRIB_LEN];
+	new String:tag[MAX_ATTRIB_LEN];
+	new Handle:h_Query = INVALID_HANDLE;
+	new String:query[255];
 
-	// Add maps as menu items
-	for (new i = 0; i < GetArraySize(category); i++)
+	Format(query, sizeof(query), " \
+		SELECT Id, Title FROM wml_workshop_maps WHERE Tag = \"%s\";",
+		category);
+	h_Query = SQL_Query(g_dbiStorage, query);
+ 
+	if (h_Query != INVALID_HANDLE)
 	{
-		GetMapIdTitle(category, i, id, buffer);
-		AddMenuItem(menu, id, buffer);
+		while (SQL_FetchRow(h_Query))
+		{
+			SQL_FetchString(h_Query, 0, id, sizeof(id));
+			SQL_FetchString(h_Query, 1, tag, sizeof(tag));
+			AddMenuItem(menu, id, tag);
+		}
 	}
  
 	// Finally, set the title
@@ -715,7 +642,7 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 		if (found)
 		{
 			new String:map[PLATFORM_MAX_PATH + 1];
-			GetMapPath(StringToInt(id), map);
+			DB_GetMapPath(StringToInt(id), map);
  
 			// Send info to client
 			PrintToChatAll("[WML] Changing map to %s", map);
@@ -799,7 +726,7 @@ public AddMapToList(String:map[])
 		GetRegexSubString(regex_id, 1, id, MAX_ID_LEN);
 		CloseHandle(regex_id);
 		
-		AddNewMap(StringToInt(id), map);
+		DB_AddNewMap(StringToInt(id), map);
 
 #if defined WML_DEBUG
 		PrintToServer("ID: %s", id);
@@ -814,42 +741,8 @@ public AddMapToList(String:map[])
  * */
 public GenerateMapList()
 {
-	// Empty and shrink array
-	ClearArray(g_WsMapList);
-	ResizeArray(g_WsMapList, 0);
-	ClearTrie(g_WsMapDetails);
-	// Empty categories
-	ClearArray(g_WsMapsClassic);
-	ResizeArray(g_WsMapsClassic, 0);
-	ClearArray(g_WsMapsDeathmatch);
-	ResizeArray(g_WsMapsDeathmatch, 0);
-	ClearArray(g_WsMapsDemolition);
-	ResizeArray(g_WsMapsDemolition, 0);
-	ClearArray(g_WsMapsArmsrace);
-	ResizeArray(g_WsMapsArmsrace, 0);
-	ClearArray(g_WsMapsHostage);
-	ResizeArray(g_WsMapsHostage, 0);
-	ClearArray(g_WsMapsCustom);
-	ResizeArray(g_WsMapsCustom, 0);
-	
 	// Dive through file system
 	ReadFolder(WORKSHOP_BASE_DIR);
-}
-
-/*
- * Custom sorting algorithm to alphabetically sort short map names.
- * TODO: re-implement
- */
-public SortMapArray(index1, index2, Handle:array, Handle:hndl)
-{
-	decl String:id[MAX_ID_LEN]; // Dummy
-	decl String:title1[MAX_ATTRIB_LEN];
-	decl String:title2[MAX_ATTRIB_LEN];
-
-	GetMapIdTitle(array, index1, id, title1);
-	GetMapIdTitle(array, index2, id, title2);
-
-	return strcmp(title1, title2, false);
 }
 
 /*
