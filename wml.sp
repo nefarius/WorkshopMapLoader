@@ -2,19 +2,20 @@
 #include <sourcemod>
 #include <regex>
 #include <system2>
-#include <dbi>
 
 #define PLUGIN_VERSION 		"0.3.0"
-#define PLUGIN_SHORT_NAME	"sm_wml"
+#define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
-#define WML_TMP_DIR			"data/sm_wml"
+#define WML_TMP_DIR			"data/wml"
+#define WML_DB_NAME			"nefarius-wml"
 
 // Plugin Limits
-#define MAX_ID_LEN		64
-#define MAX_URL_LEN		128
-#define MAX_ATTRIBS		8
-#define MAX_ATTRIB_LEN	32
+#define MAX_ID_LEN			64
+#define MAX_URL_LEN			128
+#define MAX_ATTRIB_LEN		32
+#define MAX_QUERY_LEN		255
+#define MAX_ERROR_LEN		255
 
 // Workshop tag names
 #define TAG_Classic			"Classic"
@@ -24,12 +25,8 @@
 #define TAG_Hostage			"Hostage"
 #define TAG_Custom			"Custom"
 
-// Map attributes
-#define MAP_PATH	0
-#define MAP_TITLE	1
-
 // Web API
-#define MAXPOST MAX_URL_LEN
+#define MAX_POST_LEN		MAX_URL_LEN
 #define WAPI_USERAGENT		"Valve/Steam HTTP Client 1.0"
 #define WAPI_GFDETAILS		"http://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
 
@@ -50,6 +47,7 @@ new bool:g_IsChangingLevel =	false;
 new Handle:g_cvarChangeMode = 	INVALID_HANDLE;
 new Handle:h_cvarGameType =		INVALID_HANDLE;
 new Handle:h_cvarGameMode =		INVALID_HANDLE;
+new Handle:h_cvarAutoLoad =		INVALID_HANDLE;
 
 // Menu
 new Handle:g_MapMenu = 			INVALID_HANDLE;
@@ -80,14 +78,16 @@ public OnPluginStart()
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	if (g_cvarChangeMode == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_changemode'!");
+	// Refresh map details on plugin load
+	h_cvarAutoLoad = CreateConVar("sm_wml_autoreload", "1",
+		"Automatically refresh map info on plugin (re)load <1 = Enabled/Default, 0 = Disabled>",
+		FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	if (h_cvarAutoLoad == INVALID_HANDLE)
+		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
 	
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", DisplayMapList, ADMFLAG_CHANGEMAP, "Display map list of workshop maps");
 	RegAdminCmd("sm_wml_reload", ReloadMapList, ADMFLAG_CHANGEMAP, "Re-create list of workshop maps");
-	
-#if defined WML_DEBUG
-	RegAdminCmd("sm_wml_debug", PrintDebugOutput, ADMFLAG_CHANGEMAP, "Debug output");
-#endif
 
 	// *** Hooks ***
 	h_cvarGameType = FindConVar("game_type");
@@ -105,24 +105,20 @@ public OnPluginStart()
  */
 public OnConfigsExecuted()
 {
-	new String:error[255];
-	g_dbiStorage = SQLite_UseDatabase("nefarius-wml", error, sizeof(error));
+	new String:error[MAX_ERROR_LEN];
 	
+	// Open database connection
+	g_dbiStorage = SQLite_UseDatabase(WML_DB_NAME, error, sizeof(error));
 	if (g_dbiStorage == INVALID_HANDLE)
 	{
 		SetFailState("Could not open database: %s", error);
 	}
 	
-	new Handle:query = SQL_Query(g_dbiStorage, "PRAGMA foreign_keys = ON;");
-	if (query == INVALID_HANDLE)
-	{
-		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		SetFailState("PRAGMA foreign_keys failed: %s", error);
-	}
-	
+	// Perform initial database tasks
 	CreateTables();
-	
-	//GenerateMapList();
+	// Start fetching content if wished by user
+	if (GetConVarBool(h_cvarAutoLoad))
+		GenerateMapList();
 }
 
 /*
@@ -130,7 +126,10 @@ public OnConfigsExecuted()
  */
 CreateTables()
 {
-	new String:error[255];
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+
+	new String:error[MAX_ERROR_LEN];
 
 	if (!SQL_FastQuery(g_dbiStorage, "\
 		CREATE TABLE IF NOT EXISTS wml_workshop_maps ( \
@@ -144,6 +143,23 @@ CreateTables()
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
 		SetFailState("Creating wml_maps_all failed: %s", error);
 	}
+	
+	CleanDatabase();
+}
+
+/*
+ * Removes redundant rows from database.
+ */
+CleanDatabase()
+{
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+	
+	SQL_LockDatabase(g_dbiStorage);
+	SQL_FastQuery(g_dbiStorage, " \
+		DELETE FROM wml_workshop_maps \
+		WHERE Tag = '';");
+	SQL_UnlockDatabase(g_dbiStorage);
 }
 
 /*
@@ -244,31 +260,6 @@ ChangeModeDeathmatch()
 	SetConVarInt(h_cvarGameMode, 2);
 }
 
-#if defined WML_DEBUG
-/*
- * Just ignore this :)
- */
-public Action:PrintDebugOutput(client, args)
-{
-	new String:buffer[64];
-	GetCmdArg(1, buffer, 64);
-	new i = StringToInt(buffer);
-	new Handle:h_MapDetails = INVALID_HANDLE;
-	
-	GetTrieValue(g_WsMapDetails, "204063065", h_MapDetails);
-	GetArrayString(h_MapDetails, i, buffer, sizeof(buffer));
-	PrintToServer("Array value: %s", buffer);
-	
-	for (new j = 0; j < GetArraySize(g_WsMapsClassic); j++)
-	{
-		GetArrayString(g_WsMapsClassic, j, buffer, 64);
-		PrintToServer("Classic map: %s", buffer);
-	}
-	
-	return Plugin_Handled;
-}
-#endif
-
 /*
  * API Call to fetch Workshop ID details.
  */
@@ -279,8 +270,8 @@ GetPublishedFileDetails(const String:id[])
 	//Format(request, MAX_URL_LEN, "%s?key=%s", WAPI_GFDETAILS, g_SteamAPIKey);
 	Format(request, MAX_URL_LEN, "%s", WAPI_GFDETAILS);
 	// Build POST
-	decl String:data[MAXPOST];
-	Format(data, MAXPOST, "itemcount=1&publishedfileids%%5B0%%5D=%s&format=vdf", id);
+	decl String:data[MAX_POST_LEN];
+	Format(data, MAX_POST_LEN, "itemcount=1&publishedfileids%%5B0%%5D=%s&format=vdf", id);
 	
 #if defined WML_DEBUG
 	PrintToServer("Requested: %s, length: %d", request, strlen(request));
@@ -517,17 +508,19 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
  */
  DB_AddNewMap(id, String:path[])
  {
-	new String:query[255];
+	new String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		INSERT OR REPLACE INTO wml_workshop_maps VALUES \
 			(%d, \"\", \"%s\", \"\");", id, path);
 
+	SQL_LockDatabase(g_dbiStorage);
 	if (!SQL_FastQuery(g_dbiStorage, query))
 	{
-		new String:error[255];
+		new String:error[MAX_ERROR_LEN];
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
 		PrintToServer("Failed to query (error: %s)", error);
 	}
+	SQL_UnlockDatabase(g_dbiStorage);
  }
  
  /*
@@ -535,17 +528,19 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
  */
  DB_SetMapTitle(id, String:title[])
  {
-	new String:query[255];
+	new String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		UPDATE OR REPLACE wml_workshop_maps \
 		SET Title = \"%s\" WHERE Id = %d;", title, id);
 
+	SQL_LockDatabase(g_dbiStorage);
 	if (!SQL_FastQuery(g_dbiStorage, query))
 	{
-		new String:error[255];
+		new String:error[MAX_ERROR_LEN];
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
 		PrintToServer("Failed setting map title (error: %s)", error);
 	}
+	SQL_UnlockDatabase(g_dbiStorage);
  }
  
  /*
@@ -553,19 +548,21 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
  */
  DB_SetMapTag(id, String:tag[])
  {
-	new String:query[255];
+	new String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		INSERT INTO wml_workshop_maps (Id, Tag, Path, Title) \
 		SELECT Id, \"%s\", Path, Title \
 		FROM wml_workshop_maps \
 		WHERE Id = %d;", tag, id);
 
+	SQL_LockDatabase(g_dbiStorage);
 	if (!SQL_FastQuery(g_dbiStorage, query))
 	{
-		new String:error[255];
+		new String:error[MAX_ERROR_LEN];
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
 		PrintToServer("Failed setting map tag (error: %s)", error);
 	}
+	SQL_UnlockDatabase(g_dbiStorage);
  }
  
 /*
@@ -574,19 +571,25 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
 bool:DB_GetMapPath(id, String:path[])
 {
 	new Handle:h_Query = INVALID_HANDLE;
-	new String:query[255];
+	new String:query[MAX_QUERY_LEN];
 	
 	Format(query, sizeof(query), " \
 		SELECT Path FROM wml_workshop_maps WHERE Id = %d;", id);
+		
+	SQL_LockDatabase(g_dbiStorage);
 	h_Query = SQL_Query(g_dbiStorage, query);
-
 	if (h_Query == INVALID_HANDLE)
-		return false;
+	{
+		new String:error[MAX_ERROR_LEN];
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		PrintToServer("Failed setting map tag (error: %s)", error);
+	}
+	SQL_UnlockDatabase(g_dbiStorage);
 			
 	if (!SQL_FetchRow(h_Query))
 		return false;
 	
-	SQL_FetchString(h_Query, 0, path, strlen(path) + 1);
+	SQL_FetchString(h_Query, 0, path, PLATFORM_MAX_PATH + 1);
 	
 	return true;
 }
@@ -601,13 +604,16 @@ Handle:BuildMapMenu(String:category[])
 	new String:id[MAX_ID_LEN];
 	new String:tag[MAX_ATTRIB_LEN];
 	new Handle:h_Query = INVALID_HANDLE;
-	new String:query[255];
+	new String:query[MAX_QUERY_LEN];
 
 	Format(query, sizeof(query), " \
-		SELECT Id, Title FROM wml_workshop_maps WHERE Tag = \"%s\";",
+		SELECT Id, Title FROM wml_workshop_maps \
+		WHERE Tag = \"%s\" \
+		ORDER BY Title COLLATE NOCASE ASC;",
 		category);
+		
+	SQL_LockDatabase(g_dbiStorage);
 	h_Query = SQL_Query(g_dbiStorage, query);
- 
 	if (h_Query != INVALID_HANDLE)
 	{
 		while (SQL_FetchRow(h_Query))
@@ -617,6 +623,7 @@ Handle:BuildMapMenu(String:category[])
 			AddMenuItem(menu, id, tag);
 		}
 	}
+	SQL_UnlockDatabase(g_dbiStorage);
  
 	// Finally, set the title
 	SetMenuTitle(menu, "Please select a map:");
@@ -642,29 +649,32 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 		if (found)
 		{
 			new String:map[PLATFORM_MAX_PATH + 1];
-			DB_GetMapPath(StringToInt(id), map);
- 
-			// Send info to client
-			PrintToChatAll("[WML] Changing map to %s", map);
-	 
-			// Change the map
-			if (IsMapValid(map))
+			if (DB_GetMapPath(StringToInt(id), map))
 			{
-				if (g_cvarChangeMode != INVALID_HANDLE)
-					if (GetConVarBool(g_cvarChangeMode))
-					{
-						PrintToServer("[WML] Changing mode to: %d", g_SelectedMode);
-						ChangeMode(g_SelectedMode);
-					}
-				
-				// Submit map name to timer callback
-				new Handle:h_MapName = CreateDataPack();
-				WritePackString(h_MapName, map);
-				// Delay for chat messages
-				CreateTimer(2.0, PerformMapChange, h_MapName);
+				// Send info to client
+				PrintToChatAll("[WML] Changing map to %s", map);
+		 
+				// Change the map
+				if (IsMapValid(map))
+				{
+					if (g_cvarChangeMode != INVALID_HANDLE)
+						if (GetConVarBool(g_cvarChangeMode))
+						{
+							PrintToServer("[WML] Changing mode to: %d", g_SelectedMode);
+							ChangeMode(g_SelectedMode);
+						}
+					
+					// Submit map name to timer callback
+					new Handle:h_MapName = CreateDataPack();
+					WritePackString(h_MapName, map);
+					// Delay for chat messages
+					CreateTimer(2.0, PerformMapChange, h_MapName);
+				}
+				else
+					LogError("Map '%s' unexpectedly couldn't be validated!", map);
 			}
 			else
-				LogError("Map '%s' unexpectedly couldn't be validated!", map);
+				LogError("Map '%s' wasn't found in the database!", id);
 		}
 	}
 	else if (action == MenuAction_Cancel)
