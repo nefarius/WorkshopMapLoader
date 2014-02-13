@@ -115,7 +115,7 @@ public OnConfigsExecuted()
 	}
 	
 	// Perform initial database tasks
-	CreateTables();
+	DB_CreateTables();
 	// Start fetching content if wished by user
 	if (GetConVarBool(h_cvarAutoLoad))
 		GenerateMapList();
@@ -124,7 +124,7 @@ public OnConfigsExecuted()
 /*
  * Create database tables if they don't exist.
  */
-CreateTables()
+DB_CreateTables()
 {
 	if (g_dbiStorage == INVALID_HANDLE)
 		return;
@@ -144,13 +144,13 @@ CreateTables()
 		SetFailState("Creating wml_maps_all failed: %s", error);
 	}
 	
-	CleanDatabase();
+	DB_CleanDatabase();
 }
 
 /*
  * Removes redundant rows from database.
  */
-CleanDatabase()
+DB_CleanDatabase()
 {
 	if (g_dbiStorage == INVALID_HANDLE)
 		return;
@@ -455,7 +455,7 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
 	// An item was selected
 	if (action == MenuAction_Select)
 	{
-		// Stores array index
+		// Stores map id
 		new String:info[MAX_ATTRIB_LEN];
 		new Handle:h_MapMenu = INVALID_HANDLE;
  
@@ -644,9 +644,7 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 		new String:id[MAX_ID_LEN];
  
 		// Validate passed item
-		new bool:found = GetMenuItem(menu, param2, id, MAX_ID_LEN);
-		
-		if (found)
+		if (GetMenuItem(menu, param2, id, MAX_ID_LEN))
 		{
 			new String:map[PLATFORM_MAX_PATH + 1];
 			if (DB_GetMapPath(StringToInt(id), map))
@@ -715,11 +713,6 @@ public Action:PerformMapChange(Handle:timer, Handle:pack)
 }
 
 /*
- * Database-Wrapper to add new map.
- */
-
-
-/*
  * Trims away file extension and adds element to global map list.
  */
 public AddMapToList(String:map[])
@@ -765,6 +758,12 @@ public ReadFolder(String:path[])
 	new String:tmp_path[PLATFORM_MAX_PATH + 1];
 
 	dirh = OpenDirectory(path);
+	if (dirh == INVALID_HANDLE)
+	{
+		LogError("[WML] Couldn't find the workshop folder, maybe you don't have downloaded maps yet?");
+		return;
+	}
+	
 	new FileType:type;
 	
 	// Enumerate directory elements
