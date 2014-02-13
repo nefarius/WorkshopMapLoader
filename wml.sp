@@ -1,12 +1,20 @@
+#pragma semicolon 1
 #include <sourcemod>
 #include <regex>
 #include <system2>
+#include <dbi>
 
 #define PLUGIN_VERSION 		"0.3.0"
 #define PLUGIN_SHORT_NAME	"sm_wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/sm_wml"
+
+// Plugin Limits
+#define MAX_ID_LEN		64
+#define MAX_URL_LEN		128
+#define MAX_ATTRIBS		8
+#define MAX_ATTRIB_LEN	32
 
 // Workshop tag names
 #define TAG_Classic			"Classic"
@@ -15,12 +23,6 @@
 #define TAG_Armsrace		"Armsrace"
 #define TAG_Hostage			"Hostage"
 #define TAG_Custom			"Custom"
-
-// Plugin Limits
-#define MAX_ID_LEN		64
-#define MAX_URL_LEN		128
-#define MAX_ATTRIBS		8
-#define MAX_ATTRIB_LEN	32
 
 // Map attributes
 #define MAP_PATH	0
@@ -38,6 +40,10 @@
 #define ARMSRACE			2
 #define DEMOLITION			3
 #define DEATHMATCH			4
+
+// Database
+new Handle:g_dbiStorage = 		INVALID_HANDLE;
+new Handle:g_stmtGetPath =		INVALID_HANDLE;
 
 new g_SelectedMode = 			-1;
 new bool:g_IsChangingLevel =	false;
@@ -70,6 +76,7 @@ public Plugin:myinfo =
  */
 public OnPluginStart()
 {
+	/* OLD */
 	// All map IDs
 	g_WsMapList = 			CreateArray(MAX_ID_LEN, 0);
 	// Map attributes
@@ -123,7 +130,78 @@ public OnPluginStart()
  */
 public OnConfigsExecuted()
 {
-	GenerateMapList();
+	new String:error[255];
+	g_dbiStorage = SQLite_UseDatabase("nefarius-wml", error, sizeof(error));
+	
+	if (g_dbiStorage == INVALID_HANDLE)
+	{
+		SetFailState("Could not open database: %s", error);
+	}
+	
+	new Handle:query = SQL_Query(g_dbiStorage, "PRAGMA foreign_keys = ON;");
+	if (query == INVALID_HANDLE)
+	{
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		SetFailState("PRAGMA foreign_keys failed: %s", error);
+	}
+	
+	CreateTables();
+	
+	//GenerateMapList();
+}
+
+/*
+ * Create database tables if they don't exist.
+ */
+CreateTables()
+{
+	new String:error[255];
+
+	if (!SQL_FastQuery(g_dbiStorage, "\
+		CREATE TABLE IF NOT EXISTS wml_workshop_maps ( \
+			Id INTEGER NOT NULL, \
+			Tag TEXT NOT NULL, \
+			Path TEXT NOT NULL, \
+			Title TEXT NOT NULL, \
+			UNIQUE(Id, Tag, Path, Title) ON CONFLICT REPLACE \
+	);"))
+	{
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		SetFailState("Creating wml_maps_all failed: %s", error);
+	}
+}
+
+/*
+ * Plugin unload event.
+ */
+public OnPluginEnd()
+{
+	// Do all the clean-up
+	decl String:key[MAX_ID_LEN];
+	new Handle:value = INVALID_HANDLE;
+	for (new i = 0; i < GetTrieSize(g_WsMapDetails); i++)
+	{
+		GetArrayString(g_WsMapList, i, key, MAX_ID_LEN);
+		GetTrieValue(g_WsMapDetails, key, value);
+		CloneHandle(value);
+		RemoveFromTrie(g_WsMapDetails, key);
+	}
+	CloseHandle(g_WsMapDetails);
+	ClearArray(g_WsMapList);
+	CloseHandle(g_WsMapList);
+	if (g_MapMenu != INVALID_HANDLE)
+		CloseHandle(g_MapMenu);
+	
+	CloseHandle(g_WsMapsClassic);
+	CloseHandle(g_WsMapsDeathmatch);
+	CloseHandle(g_WsMapsDemolition);
+	CloseHandle(g_WsMapsArmsrace);
+	CloseHandle(g_WsMapsHostage);
+	CloseHandle(g_WsMapsCustom);
+	
+	// Close database connection
+	if (g_dbiStorage != INVALID_HANDLE)
+		CloseHandle(g_dbiStorage);
 }
 
 /*
@@ -323,7 +401,6 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
 BrowseKeyValues(Handle:kv, const String:id[])
 {
 	decl String:buffer[MAX_ATTRIB_LEN];
-	new Handle:h_MapDetails = INVALID_HANDLE;
 
 	do
 	{
@@ -358,8 +435,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 #if defined WML_DEBUG
 					PrintToServer("Title: %s", buffer);
 #endif
-					GetTrieValue(g_WsMapDetails, id, h_MapDetails);
-					SetArrayString(h_MapDetails, MAP_TITLE, buffer);
+					SetMapTitle(StringToInt(id), buffer);
 				}
 				else if (StrEqual("tag", buffer, false))
 				{
@@ -368,42 +444,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 #if defined WML_DEBUG
 					PrintToServer("Tag: %s", buffer);
 #endif
-					if (StrEqual(buffer, TAG_Classic, false))
-					{
-						PushArrayString(g_WsMapsClassic, id);
-						// Sort maps alphabetical ascending
-						SortADTArrayCustom(g_WsMapsClassic, SortMapArray);
-					}
-					if (StrEqual(buffer, TAG_Deathmatch, false))
-					{
-						PushArrayString(g_WsMapsDeathmatch, id);
-						// Sort maps alphabetical ascending
-						SortADTArrayCustom(g_WsMapsDeathmatch, SortMapArray);
-					}
-					if (StrEqual(buffer, TAG_Demolition, false))
-					{
-						PushArrayString(g_WsMapsDemolition, id);
-						// Sort maps alphabetical ascending
-						SortADTArrayCustom(g_WsMapsDemolition, SortMapArray);
-					}
-					if (StrEqual(buffer, TAG_Armsrace, false))
-					{
-						PushArrayString(g_WsMapsArmsrace, id);
-						// Sort maps alphabetical ascending
-						SortADTArrayCustom(g_WsMapsArmsrace, SortMapArray);
-					}
-					if (StrEqual(buffer, TAG_Hostage, false))
-					{
-						PushArrayString(g_WsMapsHostage, id);
-						// Sort maps alphabetical ascending
-						SortADTArrayCustom(g_WsMapsHostage, SortMapArray);
-					}
-					if (StrEqual(buffer, TAG_Custom, false))
-					{
-						PushArrayString(g_WsMapsCustom, id);
-						// Sort maps alphabetical ascending
-						SortADTArrayCustom(g_WsMapsCustom, SortMapArray);
-					}
+					SetMapTag(StringToInt(id), buffer);
 				}
 			}
 			else
@@ -538,13 +579,93 @@ GetMapIdTitle(Handle:mapList, index, String:id[], String:output[])
 }
 
 /*
+ * Adds skeleton of new map to database.
+ */
+ AddNewMap(id, String:path[])
+ {
+	new String:query[255];
+	Format(query, sizeof(query), " \
+		INSERT OR REPLACE INTO wml_workshop_maps VALUES \
+			(%d, \"\", \"%s\", \"\");", id, path);
+
+	if (!SQL_FastQuery(g_dbiStorage, query))
+	{
+		new String:error[255];
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		PrintToServer("Failed to query (error: %s)", error);
+	}
+ }
+ 
+ /*
+ * Adds title to map with specified id.
+ */
+ SetMapTitle(id, String:title[])
+ {
+	new String:query[255];
+	Format(query, sizeof(query), " \
+		UPDATE OR REPLACE wml_workshop_maps \
+		SET Title = \"%s\" WHERE Id = %d;", title, id);
+
+	if (!SQL_FastQuery(g_dbiStorage, query))
+	{
+		new String:error[255];
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		PrintToServer("Failed setting map title (error: %s)", error);
+	}
+ }
+ 
+ /*
+ * Adds tag to map with specified id.
+ */
+ SetMapTag(id, String:tag[])
+ {
+	new String:query[255];
+	Format(query, sizeof(query), " \
+		INSERT INTO wml_workshop_maps (Id, Tag, Path, Title) \
+		SELECT Id, \"%s\", Path, Title \
+		FROM wml_workshop_maps \
+		WHERE Id = %d;", tag, id);
+
+	if (!SQL_FastQuery(g_dbiStorage, query))
+	{
+		new String:error[255];
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		PrintToServer("Failed setting map tag (error: %s)", error);
+	}
+ }
+ 
+/*
  * Helper to get local map path from ID.
  */
-GetMapPath(String:id[], String:output[])
+bool:GetMapPath(id, String:path[])
 {
-	new Handle:h_MapDetails = INVALID_HANDLE;
-	GetTrieValue(g_WsMapDetails, id, h_MapDetails);
-	GetArrayString(h_MapDetails, MAP_PATH, output, PLATFORM_MAX_PATH + 1);
+	if (g_stmtGetPath == INVALID_HANDLE)
+	{
+		new String:error[255];
+		if ((g_stmtGetPath = SQL_PrepareQuery(g_dbiStorage, 
+			"SELECT Path FROM wml_workshop_maps WHERE Id = ?", 
+			error, 
+			sizeof(error))) 
+		     == INVALID_HANDLE)
+		{
+			return false;
+		}
+	}
+ 
+	SQL_BindParamInt(g_stmtGetPath, 0, id);
+	if (!SQL_Execute(g_stmtGetPath))
+	{
+		return false;
+	}
+	
+	if (!SQL_FetchRow(g_stmtGetPath))
+	{
+		return false;
+	}
+	
+	SQL_FetchString(g_stmtGetPath, 0, path, sizeof(path));
+	
+	return true;
 }
 
 /*
@@ -594,7 +715,7 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 		if (found)
 		{
 			new String:map[PLATFORM_MAX_PATH + 1];
-			GetMapPath(id, map);
+			GetMapPath(StringToInt(id), map);
  
 			// Send info to client
 			PrintToChatAll("[WML] Changing map to %s", map);
@@ -657,33 +778,9 @@ public Action:PerformMapChange(Handle:timer, Handle:pack)
 }
 
 /*
- * Plugin unload event.
+ * Database-Wrapper to add new map.
  */
-public OnPluginEnd()
-{
-	// Do all the clean-up
-	decl String:key[MAX_ID_LEN];
-	new Handle:value = INVALID_HANDLE;
-	for (new i = 0; i < GetTrieSize(g_WsMapDetails); i++)
-	{
-		GetArrayString(g_WsMapList, i, key, MAX_ID_LEN);
-		GetTrieValue(g_WsMapDetails, key, value);
-		CloneHandle(value);
-		RemoveFromTrie(g_WsMapDetails, key);
-	}
-	CloseHandle(g_WsMapDetails);
-	ClearArray(g_WsMapList);
-	CloseHandle(g_WsMapList);
-	if (g_MapMenu != INVALID_HANDLE)
-		CloseHandle(g_MapMenu);
-	
-	CloseHandle(g_WsMapsClassic);
-	CloseHandle(g_WsMapsDeathmatch);
-	CloseHandle(g_WsMapsDemolition);
-	CloseHandle(g_WsMapsArmsrace);
-	CloseHandle(g_WsMapsHostage);
-	CloseHandle(g_WsMapsCustom);
-}
+
 
 /*
  * Trims away file extension and adds element to global map list.
@@ -701,15 +798,8 @@ public AddMapToList(String:map[])
 		MatchRegex(regex_id, map);
 		GetRegexSubString(regex_id, 1, id, MAX_ID_LEN);
 		CloseHandle(regex_id);
-		PushArrayString(g_WsMapList, id);
 		
-		// Create new storage for map details
-		new Handle:h_MapDetails = CreateArray(MAX_ATTRIB_LEN, MAX_ATTRIBS);
-		// create/set attributes
-		SetArrayString(h_MapDetails, MAP_PATH, map);
-		SetArrayString(h_MapDetails, MAP_TITLE, "");
-		// Store details in tree value
-		SetTrieValue(g_WsMapDetails, id, h_MapDetails);
+		AddNewMap(StringToInt(id), map);
 
 #if defined WML_DEBUG
 		PrintToServer("ID: %s", id);
