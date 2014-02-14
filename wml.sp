@@ -52,6 +52,9 @@ new Handle:g_cvarAutoLoad =		INVALID_HANDLE;
 // Menu
 new Handle:g_MapMenu = 			INVALID_HANDLE;
 
+// Regex
+new Handle:g_RegexId =			INVALID_HANDLE;
+
 
 public Plugin:myinfo =
 {
@@ -67,6 +70,10 @@ public Plugin:myinfo =
  */
 public OnPluginStart()
 {
+	// *** Internals ***
+	// Pre-compile regex to improve performance
+	g_RegexId = CompileRegex("\\/(\\d*)\\/");
+	
 	// *** Cvars ***
 	// Plugin version
 	CreateConVar("sm_wml_version", PLUGIN_VERSION, 
@@ -167,6 +174,9 @@ DB_CleanDatabase()
  */
 public OnPluginEnd()
 {
+	if (g_RegexId != INVALID_HANDLE)
+		CloseHandle(g_RegexId);
+	
 	if (g_MapMenu != INVALID_HANDLE)
 		CloseHandle(g_MapMenu);
 	
@@ -724,11 +734,10 @@ public AddMapToList(String:map[])
 		
 		// Extract workshop ID
 		decl String:id[MAX_ID_LEN];
-		new Handle:regex_id = CompileRegex("\\/(\\d*)\\/");
-		MatchRegex(regex_id, map);
-		GetRegexSubString(regex_id, 1, id, MAX_ID_LEN);
-		CloseHandle(regex_id);
+		MatchRegex(g_RegexId, map);
+		GetRegexSubString(g_RegexId, 1, id, MAX_ID_LEN);
 		
+		// Add map skeleton to database
 		DB_AddNewMap(StringToInt(id), map);
 
 #if defined WML_DEBUG
