@@ -54,6 +54,7 @@ new Handle:g_MapMenu = INVALID_HANDLE;
 
 // Regex
 new Handle:g_RegexId = INVALID_HANDLE;
+new Handle:g_RegexMap = INVALID_HANDLE;
 
 
 public Plugin:myinfo =
@@ -73,6 +74,7 @@ public OnPluginStart()
 	// *** Internals ***
 	// Pre-compile regex to improve performance
 	g_RegexId = CompileRegex("\\/(\\d*)\\/");
+	g_RegexMap = CompileRegex("[^/]+$");
 	
 	// *** Cvars ***
 	// Plugin version
@@ -129,53 +131,15 @@ public OnConfigsExecuted()
 }
 
 /*
- * Create database tables if they don't exist.
- */
-DB_CreateTables()
-{
-	if (g_dbiStorage == INVALID_HANDLE)
-		return;
-
-	new String:error[MAX_ERROR_LEN];
-
-	if (!SQL_FastQuery(g_dbiStorage, "\
-		CREATE TABLE IF NOT EXISTS wml_workshop_maps ( \
-			Id INTEGER NOT NULL, \
-			Tag TEXT NOT NULL, \
-			Path TEXT NOT NULL, \
-			Title TEXT NOT NULL, \
-			UNIQUE(Id, Tag, Path, Title) ON CONFLICT REPLACE \
-	);"))
-	{
-		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		SetFailState("Creating wml_maps_all failed: %s", error);
-	}
-	
-	DB_CleanDatabase();
-}
-
-/*
- * Removes redundant rows from database.
- */
-DB_CleanDatabase()
-{
-	if (g_dbiStorage == INVALID_HANDLE)
-		return;
-	
-	SQL_LockDatabase(g_dbiStorage);
-	SQL_FastQuery(g_dbiStorage, " \
-		DELETE FROM wml_workshop_maps \
-		WHERE Tag = '';");
-	SQL_UnlockDatabase(g_dbiStorage);
-}
-
-/*
  * Plugin unload event.
  */
 public OnPluginEnd()
 {
 	if (g_RegexId != INVALID_HANDLE)
 		CloseHandle(g_RegexId);
+		
+	if (g_RegexMap != INVALID_HANDLE)
+		CloneHandle(g_RegexMap);
 	
 	if (g_MapMenu != INVALID_HANDLE)
 		CloseHandle(g_MapMenu);
@@ -216,6 +180,54 @@ public OnConvarChanged(Handle:cvar, const String:oldVal[], const String:newVal[]
 				ChangeMode(g_SelectedMode);
 			}
 		}
+	}
+}
+
+/*
+ * Gets called when response is received.
+ * TODO: proper handling if response is over 4KBytes.
+ */
+public OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
+{
+	// Response is complete
+	if(status == CMD_SUCCESS)
+	{
+		// Get associated ID
+		decl String:id[MAX_ID_LEN];
+		ResetPack(data);
+		ReadPackString(data, id, sizeof(id));
+		CloseHandle(data);
+		
+		// Create temporary directory
+		decl String:path[PLATFORM_MAX_PATH + 1];
+		BuildPath(Path_SM, path, sizeof(path), "%s", WML_TMP_DIR);
+		if (!DirExists(path))
+			CreateDirectory(path, 511);
+		// Create Kv file
+		BuildPath(Path_SM, path, sizeof(path), "%s/%s.txt", WML_TMP_DIR, id);
+		new Handle:file = OpenFile(path, "wt");
+		if (file == INVALID_HANDLE)
+			LogError("Couldn't create tmp file!");
+		WriteFileString(file, output, false);
+		CloseHandle(file);
+		
+		// Begin parse response
+		new Handle:kv = CreateKeyValues("response");
+		if(kv != INVALID_HANDLE)
+		{
+			if (FileToKeyValues(kv, path))
+			{
+				BrowseKeyValues(kv, id);
+				CloseHandle(kv);
+				// Once the map has been tagged, it's origin may be purged
+				DB_RemoveUntagged(StringToInt(id));
+			}
+			else
+				LogError("Couldn't open KeyValues!");
+		}
+		
+		// Delete (temporary) Kv file
+		DeleteFile(path);
 	}
 }
 
@@ -293,62 +305,6 @@ GetPublishedFileDetails(const String:id[])
 	new Handle:pack = CreateDataPack();
 	WritePackString(pack, id);
 	System2_GetPage(OnGetPage, request, data, WAPI_USERAGENT, pack);
-}
-
-/*
- * Gets called when response is received.
- * TODO: proper handling if response is over 4KBytes.
- */
-public OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
-{
-#if defined WML_DEBUG
-	PrintToServer("Response received.");
-#endif
-	// Response is complete
-	if(status == CMD_SUCCESS)
-	{
-		// Get associated ID
-		decl String:id[MAX_ID_LEN];
-		ResetPack(data);
-		ReadPackString(data, id, sizeof(id));
-		CloseHandle(data);
-		
-#if defined WML_DEBUG
-		PrintToServer("Provided ID: %s", id);
-		PrintToServer("OnGetPage() finished.");
-		PrintToServer("Status: %d", status);
-		PrintToServer("Size: %d", size);
-#endif
-		// Create temporary directory
-		decl String:path[PLATFORM_MAX_PATH + 1];
-		BuildPath(Path_SM, path, sizeof(path), "%s", WML_TMP_DIR);
-		if (!DirExists(path))
-			CreateDirectory(path, 511);
-		// Create Kv file
-		BuildPath(Path_SM, path, sizeof(path), "%s/%s.txt", WML_TMP_DIR, id);
-		new Handle:file = OpenFile(path, "wt");
-		if (file == INVALID_HANDLE)
-			LogError("Couldn't create tmp file!");
-		WriteFileString(file, output, false);
-		CloseHandle(file);
-		
-		// Begin parse response
-		new Handle:kv = CreateKeyValues("response");
-		if(kv != INVALID_HANDLE)
-		{
-			if (FileToKeyValues(kv, path))
-			{
-				BrowseKeyValues(kv, id);
-				CloseHandle(kv);
-			}
-			else
-				LogError("Couldn't open KeyValues!");
-		}		
-		
-#if defined WML_DEBUG
-		PrintToServer("Done");
-#endif
-	}
 }
 
 /*
@@ -514,14 +470,56 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
 }
 
 /*
+ * Create database tables if they don't exist.
+ */
+DB_CreateTables()
+{
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+
+	new String:error[MAX_ERROR_LEN];
+
+	if (!SQL_FastQuery(g_dbiStorage, "\
+		CREATE TABLE IF NOT EXISTS wml_workshop_maps ( \
+			Id INTEGER NOT NULL, \
+			Tag TEXT NOT NULL, \
+			Map TEXT NOT NULL, \
+			Title TEXT NOT NULL, \
+			UNIQUE(Id, Tag, Map, Title) ON CONFLICT REPLACE \
+	);"))
+	{
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		SetFailState("Creating wml_maps_all failed: %s", error);
+	}
+}
+
+/*
+ * Removes an entry identified by Id if tag-less.
+ */
+DB_RemoveUntagged(id)
+{
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+	
+	new String:query[MAX_QUERY_LEN];
+	Format(query, sizeof(query), " \
+		DELETE FROM wml_workshop_maps \
+		WHERE Tag = '' AND Id = %d;", id);
+	
+	SQL_LockDatabase(g_dbiStorage);
+	SQL_FastQuery(g_dbiStorage, query);
+	SQL_UnlockDatabase(g_dbiStorage);
+}
+
+/*
  * Adds skeleton of new map to database.
  */
- DB_AddNewMap(id, String:path[])
+ DB_AddNewMap(id, String:file[])
  {
 	new String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		INSERT OR REPLACE INTO wml_workshop_maps VALUES \
-			(%d, \"\", \"%s\", \"\");", id, path);
+			(%d, \"\", \"%s\", \"\");", id, file);
 
 	SQL_LockDatabase(g_dbiStorage);
 	if (!SQL_FastQuery(g_dbiStorage, query))
@@ -560,8 +558,8 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
  {
 	new String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
-		INSERT INTO wml_workshop_maps (Id, Tag, Path, Title) \
-		SELECT Id, \"%s\", Path, Title \
+		INSERT INTO wml_workshop_maps (Id, Tag, Map, Title) \
+		SELECT Id, \"%s\", Map, Title \
 		FROM wml_workshop_maps \
 		WHERE Id = %d;", tag, id);
 
@@ -584,7 +582,8 @@ bool:DB_GetMapPath(id, String:path[])
 	new String:query[MAX_QUERY_LEN];
 	
 	Format(query, sizeof(query), " \
-		SELECT Path FROM wml_workshop_maps WHERE Id = %d;", id);
+		SELECT 'workshop/' Id || '/' || Map \
+		FROM wml_workshop_maps WHERE Id = %d;", id);
 		
 	SQL_LockDatabase(g_dbiStorage);
 	h_Query = SQL_Query(g_dbiStorage, query);
@@ -725,7 +724,7 @@ public Action:PerformMapChange(Handle:timer, Handle:pack)
 /*
  * Trims away file extension and adds element to global map list.
  */
-public AddMapToList(String:map[])
+AddMapToList(String:map[])
 {
 	if (StrEqual(map[strlen(map) - 3], "bsp", false))
 	{
@@ -737,12 +736,13 @@ public AddMapToList(String:map[])
 		MatchRegex(g_RegexId, map);
 		GetRegexSubString(g_RegexId, 1, id, MAX_ID_LEN);
 		
+		decl String:file[MAX_ATTRIB_LEN];
+		MatchRegex(g_RegexMap, map);
+		GetRegexSubString(g_RegexMap, 0, file, MAX_ID_LEN);
+		
 		// Add map skeleton to database
-		DB_AddNewMap(StringToInt(id), map);
+		DB_AddNewMap(StringToInt(id), file);
 
-#if defined WML_DEBUG
-		PrintToServer("ID: %s", id);
-#endif
 		// Fetch workshop item info
 		GetPublishedFileDetails(id);
 	}
@@ -751,7 +751,7 @@ public AddMapToList(String:map[])
 /*
  * Builds in-memory map list and user menu.
  * */
-public GenerateMapList()
+GenerateMapList()
 {
 	// Dive through file system
 	ReadFolder(WORKSHOP_BASE_DIR);
@@ -760,7 +760,7 @@ public GenerateMapList()
 /*
  * Recursively fetch content of given folder.
  */
-public ReadFolder(String:path[])
+ReadFolder(String:path[])
 {
 	new Handle:dirh = INVALID_HANDLE;
 	new String:buffer[PLATFORM_MAX_PATH + 1];
