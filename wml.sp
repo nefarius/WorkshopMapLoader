@@ -45,9 +45,9 @@ new Handle:g_dbiStorage = 		INVALID_HANDLE;
 new g_SelectedMode = 			-1;
 new bool:g_IsChangingLevel =	false;
 new Handle:g_cvarChangeMode = 	INVALID_HANDLE;
-new Handle:h_cvarGameType =		INVALID_HANDLE;
-new Handle:h_cvarGameMode =		INVALID_HANDLE;
-new Handle:h_cvarAutoLoad =		INVALID_HANDLE;
+new Handle:g_cvarGameType =		INVALID_HANDLE;
+new Handle:g_cvarGameMode =		INVALID_HANDLE;
+new Handle:g_cvarAutoLoad =		INVALID_HANDLE;
 
 // Menu
 new Handle:g_MapMenu = 			INVALID_HANDLE;
@@ -79,10 +79,10 @@ public OnPluginStart()
 	if (g_cvarChangeMode == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_changemode'!");
 	// Refresh map details on plugin load
-	h_cvarAutoLoad = CreateConVar("sm_wml_autoreload", "1",
+	g_cvarAutoLoad = CreateConVar("sm_wml_autoreload", "1",
 		"Automatically refresh map info on plugin (re)load <1 = Enabled/Default, 0 = Disabled>",
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	if (h_cvarAutoLoad == INVALID_HANDLE)
+	if (g_cvarAutoLoad == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
 	
 	// *** Cmds ***
@@ -90,11 +90,11 @@ public OnPluginStart()
 	RegAdminCmd("sm_wml_reload", ReloadMapList, ADMFLAG_CHANGEMAP, "Re-create list of workshop maps");
 
 	// *** Hooks ***
-	h_cvarGameType = FindConVar("game_type");
-	h_cvarGameMode = FindConVar("game_mode");
+	g_cvarGameType = FindConVar("game_type");
+	g_cvarGameMode = FindConVar("game_mode");
 	// Intercept game mode/type changes
-	HookConVarChange(h_cvarGameType, OnConvarChanged);
-	HookConVarChange(h_cvarGameMode, OnConvarChanged);
+	HookConVarChange(g_cvarGameType, OnConvarChanged);
+	HookConVarChange(g_cvarGameMode, OnConvarChanged);
 	
 	// Load/Store Cvars
 	AutoExecConfig(true, PLUGIN_SHORT_NAME);
@@ -117,7 +117,7 @@ public OnConfigsExecuted()
 	// Perform initial database tasks
 	DB_CreateTables();
 	// Start fetching content if wished by user
-	if (GetConVarBool(h_cvarAutoLoad))
+	if (GetConVarBool(g_cvarAutoLoad))
 		GenerateMapList();
 }
 
@@ -199,7 +199,7 @@ public OnConvarChanged(Handle:cvar, const String:oldVal[], const String:newVal[]
 		if (GetConVarBool(g_cvarChangeMode) && g_IsChangingLevel)
 		{
 			// Let everything pass 
-			if (cvar == h_cvarGameMode || cvar == h_cvarGameType)
+			if (cvar == g_cvarGameMode || cvar == g_cvarGameType)
 			{
 				PrintToServer("[WML] Game Mode/Type changed outside of WML, correcting...");
 				// Override settings
@@ -232,32 +232,32 @@ ChangeMode(mode)
 // https://forums.alliedmods.net/showthread.php?p=1891305
 ChangeModeCasual()
 {
-	SetConVarInt(h_cvarGameType, 0);
-	SetConVarInt(h_cvarGameMode, 0);
+	SetConVarInt(g_cvarGameType, 0);
+	SetConVarInt(g_cvarGameMode, 0);
 }
 
 ChangeModeCompetitive()
 {
-	SetConVarInt(h_cvarGameType, 0);
-	SetConVarInt(h_cvarGameMode, 1);
+	SetConVarInt(g_cvarGameType, 0);
+	SetConVarInt(g_cvarGameMode, 1);
 }
 
 ChangeModeArmsrace()
 {
-	SetConVarInt(h_cvarGameType, 1);
-	SetConVarInt(h_cvarGameMode, 0);
+	SetConVarInt(g_cvarGameType, 1);
+	SetConVarInt(g_cvarGameMode, 0);
 }
 
 ChangeModeDemolition()
 {
-	SetConVarInt(h_cvarGameType, 1);
-	SetConVarInt(h_cvarGameMode, 1);
+	SetConVarInt(g_cvarGameType, 1);
+	SetConVarInt(g_cvarGameMode, 1);
 }
 
 ChangeModeDeathmatch()
 {
-	SetConVarInt(h_cvarGameType, 1);
-	SetConVarInt(h_cvarGameMode, 2);
+	SetConVarInt(g_cvarGameType, 1);
+	SetConVarInt(g_cvarGameMode, 2);
 }
 
 /*
