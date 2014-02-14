@@ -166,6 +166,16 @@ public OnMapVoteEnd(const String:map[])
 	PrintToChatAll("Would now change map to: %s", map);
 }
 
+public OnMapEnd()
+{
+	if (HasEndOfMapVoteFinished())
+	{
+		decl String:map[PLATFORM_MAX_PATH + 1];
+		GetNextMap(map, sizeof(map));
+		ChangeLevel2(map);
+	}
+}
+
 /*
  * Plugin unload event.
  */
@@ -729,23 +739,7 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 				PrintToChatAll("[WML] Changing map to %s", map);
 		 
 				// Change the map
-				if (IsMapValid(map))
-				{
-					if (g_cvarChangeMode != INVALID_HANDLE)
-						if (GetConVarBool(g_cvarChangeMode))
-						{
-							PrintToServer("[WML] Changing mode to: %d", g_SelectedMode);
-							ChangeMode(g_SelectedMode);
-						}
-					
-					// Submit map name to timer callback
-					new Handle:h_MapName = CreateDataPack();
-					WritePackString(h_MapName, map);
-					// Delay for chat messages
-					CreateTimer(2.0, PerformMapChange, h_MapName);
-				}
-				else
-					LogError("Map '%s' unexpectedly couldn't be validated!", map);
+				ChangeLevel2(map);
 			}
 			else
 				LogError("Map '%s' wasn't found in the database!", id);
@@ -769,6 +763,31 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 		// This sub-menu is regenerated every time so free up memory
 		CloseHandle(menu);
 	}
+}
+
+/*
+ * Perform map change.
+ */
+ChangeLevel2(const String:map[])
+{
+	if (IsMapValid(map))
+	{
+		if (g_cvarChangeMode != INVALID_HANDLE)
+			if (GetConVarBool(g_cvarChangeMode))
+			{
+				PrintToServer("[WML] Changing mode to: %d", g_SelectedMode);
+				
+				// Submit map name to timer callback
+				new Handle:h_MapName = CreateDataPack();
+				WritePackString(h_MapName, map);
+				// Delay for chat messages
+				CreateTimer(2.0, PerformMapChange, h_MapName);
+			}
+		
+		ChangeLevel2(map);
+	}
+	else
+		LogError("Map '%s' unexpectedly couldn't be validated!", map);
 }
 
 /*
