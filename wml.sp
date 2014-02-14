@@ -39,21 +39,21 @@
 #define DEATHMATCH			4
 
 // Database
-new Handle:g_dbiStorage = 		INVALID_HANDLE;
+new Handle:g_dbiStorage = INVALID_HANDLE;
 
 // System
-new g_SelectedMode = 			-1;
-new bool:g_IsChangingLevel =	false;
-new Handle:g_cvarChangeMode = 	INVALID_HANDLE;
-new Handle:g_cvarGameType =		INVALID_HANDLE;
-new Handle:g_cvarGameMode =		INVALID_HANDLE;
-new Handle:g_cvarAutoLoad =		INVALID_HANDLE;
+new g_SelectedMode = -1;
+new bool:g_IsChangingLevel = false;
+new Handle:g_cvarChangeMode = INVALID_HANDLE;
+new Handle:g_cvarGameType = INVALID_HANDLE;
+new Handle:g_cvarGameMode = INVALID_HANDLE;
+new Handle:g_cvarAutoLoad = INVALID_HANDLE;
 
 // Menu
-new Handle:g_MapMenu = 			INVALID_HANDLE;
+new Handle:g_MapMenu = INVALID_HANDLE;
 
 // Regex
-new Handle:g_RegexId =			INVALID_HANDLE;
+new Handle:g_RegexId = INVALID_HANDLE;
 
 
 public Plugin:myinfo =
