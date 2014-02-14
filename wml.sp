@@ -19,7 +19,7 @@
 
 // Workshop tag names
 #define TAG_Classic			"Classic"
-#define TAG_Deathmatch	 	"Deathmatch"
+#define TAG_Deathmatch		"Deathmatch"
 #define TAG_Demolition		"Demolition"
 #define TAG_Armsrace		"Armsrace"
 #define TAG_Hostage			"Hostage"
