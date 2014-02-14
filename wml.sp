@@ -2,6 +2,8 @@
 #include <sourcemod>
 #include <regex>
 #include <system2>
+#undef REQUIRE_PLUGIN
+#include <mapchooser_extended>
 
 #define PLUGIN_VERSION 		"0.3.0"
 #define PLUGIN_SHORT_NAME	"wml"
@@ -37,6 +39,10 @@
 #define ARMSRACE			2
 #define DEMOLITION			3
 #define DEATHMATCH			4
+
+// Extended Map Chooser
+#define PLUGIN_EMC			"mapchooser"
+new bool:g_IsMapChooserLoaded = false;
 
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;
@@ -97,6 +103,7 @@ public OnPluginStart()
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", DisplayMapList, ADMFLAG_CHANGEMAP, "Display map list of workshop maps");
 	RegAdminCmd("sm_wml_reload", ReloadMapList, ADMFLAG_CHANGEMAP, "Re-create list of workshop maps");
+	RegAdminCmd("sm_wml_vote_now", VoteNow, ADMFLAG_CHANGEMAP, "Bring up map vote menu");
 
 	// *** Hooks ***
 	g_cvarGameType = FindConVar("game_type");
@@ -128,6 +135,35 @@ public OnConfigsExecuted()
 	// Start fetching content if wished by user
 	if (GetConVarBool(g_cvarAutoLoad))
 		GenerateMapList();
+		
+	SQL_LockDatabase(g_dbiStorage);
+	new Handle:query = SQL_Query(g_dbiStorage, " \
+		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
+		ORDER BY RANDOM() LIMIT 5;");
+	
+	decl String:map[MAX_ID_LEN];
+	while (SQL_FetchRow(query))
+	{
+		SQL_FetchString(query, 0, map, sizeof(map));
+		if (NominateMap(map, true, 0) != Nominate_Added)
+			PrintToServer("Nominated map: %s!", map);
+		else
+			PrintToServer("Couldn't nominate %s!", map);
+	}
+	
+	SQL_UnlockDatabase(g_dbiStorage);
+}
+
+public Action:VoteNow(client, args)
+{
+	InitiateMapChooserVote(MapChange_MapEnd);
+	
+	return Plugin_Handled;
+}
+
+public OnMapVoteEnd(const String:map[])
+{
+	PrintToChatAll("Would now change map to: %s", map);
 }
 
 /*
@@ -147,6 +183,37 @@ public OnPluginEnd()
 	// Close database connection
 	if (g_dbiStorage != INVALID_HANDLE)
 		CloseHandle(g_dbiStorage);
+}
+
+public OnAllPluginsLoaded()
+{
+	if (LibraryExists(PLUGIN_EMC))
+	{
+		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
+		PrintToServer("Extended MapChooser available: %d", g_IsMapChooserLoaded);
+	}
+}
+
+bool:EMC_IsOnMapVoteEndPresent()
+{
+	return (GetFeatureStatus(FeatureType_Native, "IsMapOfficial") == FeatureStatus_Available);
+}
+
+public OnLibraryAdded(const String:name[])
+{
+	if (StrEqual(name, PLUGIN_EMC))
+	{
+		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
+		PrintToServer("Extended MapChooser available: %d", g_IsMapChooserLoaded);
+	}
+}
+
+public OnLibraryRemoved(const String:name[])
+{
+	if (StrEqual(name, PLUGIN_EMC))
+	{
+		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
+	}
 }
 
 /*
