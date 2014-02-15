@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.5"
+#define PLUGIN_VERSION 		"0.4.6"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
@@ -162,7 +162,7 @@ public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcas
 		GetNextMap(map, sizeof(map));
 		LogMessage("Changing map to %s", map);
 		// Trigger delayed changelevel2
-		ChangeLevel2(map, delay -1);
+		ChangeLevel2(map, delay);
 	}
 	
 	return Plugin_Continue;
