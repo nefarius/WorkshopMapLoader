@@ -666,7 +666,7 @@ bool:DB_GetMapPath(id, String:path[])
 	new String:query[MAX_QUERY_LEN];
 	
 	Format(query, sizeof(query), " \
-		SELECT 'workshop/' Id || '/' || Map \
+		SELECT 'workshop/' || Id || '/' || Map \
 		FROM wml_workshop_maps WHERE Id = %d;", id);
 		
 	SQL_LockDatabase(g_dbiStorage);
