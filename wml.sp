@@ -173,12 +173,14 @@ public OnMapVoteEnd(const String:map[])
 
 public Action:Cmd_NominateRandom(client, args)
 {
+	// Is Extended MapChooser available
 	if (!g_IsMapChooserLoaded)
 	{
 		PrintToChat(client, ERROR_NO_EMC);
 		return Plugin_Handled;
 	}
 	
+	// Is argument supplied
 	if (args < 1)
 	{
 		PrintToConsole(client, "No argument specified.");
@@ -189,19 +191,36 @@ public Action:Cmd_NominateRandom(client, args)
 	new count = 0;
 	
 	GetCmdArgString(buffer, sizeof(buffer));
-	
+	// Is argument valid/within range
 	if (0 >= (count = StringToInt(buffer)))
 	{
 		PrintToConsole(client, "Invalid argument specified.");
 		return Plugin_Handled;
 	}
 	
-	new String:query[MAX_QUERY_LEN];
-	SQL_LockDatabase(g_dbiStorage);
+	decl String:mode[MAX_ATTRIB_LEN];
+	// Detect current mode to query only matching maps
+	switch (GetMode())
+	{
+		case CASUAL:
+			mode = TAG_Classic;
+		case COMPETITIVE:
+			mode = TAG_Hostage;
+		case ARMSRACE:
+			mode = TAG_Armstrace;
+		case DEMOLITION:
+			mode = TAG_Demolition;
+		case DEATHMATCH:
+			mode = TAG_Deathmatch;
+	}
+	
+	decl String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
-		ORDER BY RANDOM() LIMIT %d;", count);
-		
+		WHERE Tag = \"%s\" \
+		ORDER BY RANDOM() LIMIT %d;", mode, count);
+	
+	SQL_LockDatabase(g_dbiStorage);	
 	new Handle:h_Query = SQL_Query(g_dbiStorage, query);
 	
 	decl String:map[MAX_ID_LEN];
@@ -369,6 +388,26 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
 		// Delete (temporary) Kv file
 		DeleteFile(path);
 	}
+}
+
+/*
+ * Get current game mode/type.
+ */
+GetMode()
+{
+	new type = GetConVarInt(g_cvarGameType);
+	new mode = GetConVarInt(g_cvarGameMode);
+	
+	if (type == 0 && mode == 0)
+		return CASUAL;
+	if (type == 0 && mode == 1)
+		return COMPETITIVE;
+	if (type == 1 && mode == 0)
+		return ARMSRACE;
+	if (type == 1 && mode == 1)
+		return DEMOLITION;
+	if (type == 1 && mode == 2)
+		return DEATHMATCH;
 }
 
 /*
