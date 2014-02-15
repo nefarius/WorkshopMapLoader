@@ -109,7 +109,7 @@ public OnPluginStart()
 	RegAdminCmd("sm_wml_vote_now", Cmd_VoteNow, ADMFLAG_CHANGEMAP, 
 		"Bring up map vote menu");
 	RegAdminCmd("sm_wml_nominate_random_maps", Cmd_NominateRandom, ADMFLAG_CHANGEMAP, 
-		"Bring up map vote menu");
+		"Nominate a specified amount of random maps from the database");
 
 	// *** Hooks ***
 	g_cvarGameType = FindConVar("game_type");
