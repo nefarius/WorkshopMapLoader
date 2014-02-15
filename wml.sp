@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.2"
+#define PLUGIN_VERSION 		"0.4.3"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
@@ -119,7 +119,7 @@ public OnPluginStart()
 	HookConVarChange(g_cvarGameType, OnConvarChanged);
 	HookConVarChange(g_cvarGameMode, OnConvarChanged);
 	// Intercept round end for mapchooser
-	HookEvent("game_end", Event_GameEnd, EventHookMode_PostNoCopy);
+	HookEvent("cs_win_panel_match", Event_GameEnd, EventHookMode_PostNoCopy);
 	
 	// Load/Store Cvars
 	AutoExecConfig(true, PLUGIN_SHORT_NAME);
@@ -151,12 +151,14 @@ public OnConfigsExecuted()
  */
 public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	LogMessage("Detected end of game");
+	
 	if (g_HasVoteOccured)
 	{
 		g_HasVoteOccured = false;
 		new String:map[PLATFORM_MAX_PATH + 1];
 		GetNextMap(map, sizeof(map));
-		LogMessage("Changing map to %s");
+		LogMessage("Changing map to %s", map);
 		ChangeLevel2(map);
 	}
 	
