@@ -168,6 +168,7 @@ public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcas
  */
 public OnMapVoteEnd(const String:map[])
 {
+	LogMessage("%s has been chosen to be the next map", map);
 	g_HasVoteOccured = true;
 }
 
