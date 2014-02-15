@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.3"
+#define PLUGIN_VERSION 		"0.4.4"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
@@ -156,10 +156,12 @@ public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcas
 	if (g_HasVoteOccured)
 	{
 		g_HasVoteOccured = false;
+		
+		new Float:delay = GetConVarFloat(FindConVar("mp_match_restart_delay"));
 		new String:map[PLATFORM_MAX_PATH + 1];
 		GetNextMap(map, sizeof(map));
 		LogMessage("Changing map to %s", map);
-		ChangeLevel2(map);
+		ChangeLevel2(map, delay);
 	}
 	
 	return Plugin_Continue;
@@ -899,13 +901,13 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 /*
  * Perform map change.
  */
-ChangeLevel2(const String:map[])
+ChangeLevel2(const String:map[], const Float:delay=2.0)
 {
 	// Submit map name to timer callback
 	new Handle:h_MapName = CreateDataPack();
 	WritePackString(h_MapName, map);
 	// Delay for chat messages
-	CreateTimer(2.0, PerformMapChange, h_MapName);
+	CreateTimer(delay, PerformMapChange, h_MapName);
 }
 
 /*
