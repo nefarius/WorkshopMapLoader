@@ -42,6 +42,7 @@
 
 // Extended Map Chooser
 #define PLUGIN_EMC			"mapchooser"
+#define ERROR_NO_EMC		"[WML] Command unavailable, Extended MapChooser not found!"
 new bool:g_IsMapChooserLoaded = false;
 new bool:g_HasVoteOccured = false;
 
@@ -102,9 +103,14 @@ public OnPluginStart()
 		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
 	
 	// *** Cmds ***
-	RegAdminCmd("sm_wml", Cmd_DisplayMapList, ADMFLAG_CHANGEMAP, "Display map list of workshop maps");
-	RegAdminCmd("sm_wml_reload", Cmd_ReloadMapList, ADMFLAG_CHANGEMAP, "Re-create list of workshop maps");
-	RegAdminCmd("sm_wml_vote_now", Cmd_VoteNow, ADMFLAG_CHANGEMAP, "Bring up map vote menu");
+	RegAdminCmd("sm_wml", Cmd_DisplayMapList, ADMFLAG_CHANGEMAP, 
+		"Display map list of workshop maps");
+	RegAdminCmd("sm_wml_reload", Cmd_ReloadMapList, ADMFLAG_CHANGEMAP, 
+		"(Re)download map details from Steam");
+	RegAdminCmd("sm_wml_vote_now", Cmd_VoteNow, ADMFLAG_CHANGEMAP, 
+		"Bring up map vote menu");
+	RegAdminCmd("sm_wml_nominate_random_maps", Cmd_NominateRandom, ADMFLAG_CHANGEMAP, 
+		"Bring up map vote menu");
 
 	// *** Hooks ***
 	g_cvarGameType = FindConVar("game_type");
@@ -165,30 +171,62 @@ public OnMapVoteEnd(const String:map[])
 	g_HasVoteOccured = true;
 }
 
+public Action:Cmd_NominateRandom(client, args)
+{
+	if (!g_IsMapChooserLoaded)
+	{
+		PrintToChat(client, ERROR_NO_EMC);
+		return Plugin_Handled;
+	}
+	
+	if (args < 1)
+	{
+		PrintToConsole(client, "No argument specified.");
+		return Plugin_Handled;
+	}
+	
+	decl String:buffer[3];
+	new count = 0;
+	
+	GetCmdArgString(buffer, sizeof(buffer));
+	
+	if (0 >= (count = StringToInt(buffer)))
+	{
+		PrintToConsole(client, "Invalid argument specified.");
+		return Plugin_Handled;
+	}
+	
+	new String:query[MAX_QUERY_LEN];
+	SQL_LockDatabase(g_dbiStorage);
+	Format(query, sizeof(query), " \
+		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
+		ORDER BY RANDOM() LIMIT %d;", count);
+		
+	new Handle:h_Query = SQL_Query(g_dbiStorage, query);
+	
+	decl String:map[MAX_ID_LEN];
+	// Enumerate through all the results
+	while (SQL_FetchRow(h_Query))
+	{
+		SQL_FetchString(h_Query, 0, map, sizeof(map));
+		if (NominateMap(map, true, 0) != Nominate_Added)
+			PrintToConsole(client, "Nominated map: %s!", map);
+		else
+			PrintToConsole(client, "Couldn't nominate %s!", map);
+	}
+	
+	SQL_UnlockDatabase(g_dbiStorage);
+	
+	return Plugin_Handled;
+}
+
 public Action:Cmd_VoteNow(client, args)
 {
 	if (!g_IsMapChooserLoaded)
 	{
-		PrintToChat(client, "[WML] Command unavailable, Extended MapChooser not found!");
+		PrintToChat(client, ERROR_NO_EMC);
 		return Plugin_Handled;
 	}
-	
-	SQL_LockDatabase(g_dbiStorage);
-	new Handle:query = SQL_Query(g_dbiStorage, " \
-		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
-		ORDER BY RANDOM() LIMIT 5;");
-	
-	decl String:map[MAX_ID_LEN];
-	while (SQL_FetchRow(query))
-	{
-		SQL_FetchString(query, 0, map, sizeof(map));
-		if (NominateMap(map, true, 0) != Nominate_Added)
-			LogMessage("Nominated map: %s!", map);
-		else
-			LogMessage("Couldn't nominate %s!", map);
-	}
-	
-	SQL_UnlockDatabase(g_dbiStorage);
 
 	InitiateMapChooserVote(MapChange_MapEnd);
 	
@@ -763,6 +801,8 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 				// Send info to client
 				PrintToChatAll("[WML] Changing map to %s", map);
 		 
+				// Change mode
+				ChangeMode(g_SelectedMode);
 				// Change the map
 				ChangeLevel2(map);
 			}
