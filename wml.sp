@@ -43,6 +43,7 @@
 // Extended Map Chooser
 #define PLUGIN_EMC			"mapchooser"
 new bool:g_IsMapChooserLoaded = false;
+new bool:g_HasVoteEnded = false;
 
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;
@@ -111,6 +112,8 @@ public OnPluginStart()
 	// Intercept game mode/type changes
 	HookConVarChange(g_cvarGameType, OnConvarChanged);
 	HookConVarChange(g_cvarGameMode, OnConvarChanged);
+	// Intercept round end for mapchooser
+	HookEvent("round_end", Event_RoundEnd, EventHookMode_Pre);
 	
 	// Load/Store Cvars
 	AutoExecConfig(true, PLUGIN_SHORT_NAME);
@@ -154,26 +157,30 @@ public OnConfigsExecuted()
 	SQL_UnlockDatabase(g_dbiStorage);
 }
 
+public Action:Event_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (g_HasVoteEnded)
+	{
+		g_HasVoteEnded = false;
+		PrintToChatAll("[WML] Changing map...");
+		new String:dummy[255];
+		GetNextMap(dummy, 255);
+		ChangeLevel2(dummy);
+	}
+	
+	return Plugin_Continue;
+}
+
+public OnMapVoteEnd(const String:map[])
+{
+	g_HasVoteEnded = true;
+}
+
 public Action:VoteNow(client, args)
 {
 	InitiateMapChooserVote(MapChange_MapEnd);
 	
 	return Plugin_Handled;
-}
-
-public OnMapVoteEnd(const String:map[])
-{
-	PrintToChatAll("Would now change map to: %s", map);
-}
-
-public OnMapEnd()
-{
-	if (HasEndOfMapVoteFinished())
-	{
-		decl String:map[PLATFORM_MAX_PATH + 1];
-		GetNextMap(map, sizeof(map));
-		ChangeLevel2(map);
-	}
 }
 
 /*
