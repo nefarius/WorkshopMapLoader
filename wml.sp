@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.0"
+#define PLUGIN_VERSION 		"0.4.2"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
@@ -43,7 +43,7 @@
 // Extended Map Chooser
 #define PLUGIN_EMC			"mapchooser"
 new bool:g_IsMapChooserLoaded = false;
-new bool:g_HasVoteEnded = false;
+new bool:g_HasVoteOccured = false;
 
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;
@@ -104,7 +104,7 @@ public OnPluginStart()
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", DisplayMapList, ADMFLAG_CHANGEMAP, "Display map list of workshop maps");
 	RegAdminCmd("sm_wml_reload", ReloadMapList, ADMFLAG_CHANGEMAP, "Re-create list of workshop maps");
-	RegAdminCmd("sm_wml_vote_now", VoteNow, ADMFLAG_CHANGEMAP, "Bring up map vote menu");
+	RegAdminCmd("sm_wml_vote_now", Cmd_VoteNow, ADMFLAG_CHANGEMAP, "Bring up map vote menu");
 
 	// *** Hooks ***
 	g_cvarGameType = FindConVar("game_type");
@@ -113,7 +113,7 @@ public OnPluginStart()
 	HookConVarChange(g_cvarGameType, OnConvarChanged);
 	HookConVarChange(g_cvarGameMode, OnConvarChanged);
 	// Intercept round end for mapchooser
-	HookEvent("round_end", Event_RoundEnd, EventHookMode_Pre);
+	HookEvent("game_end", Event_GameEnd, EventHookMode_PostNoCopy);
 	
 	// Load/Store Cvars
 	AutoExecConfig(true, PLUGIN_SHORT_NAME);
@@ -138,7 +138,41 @@ public OnConfigsExecuted()
 	// Start fetching content if wished by user
 	if (GetConVarBool(g_cvarAutoLoad))
 		GenerateMapList();
-		
+}
+
+/*
+ * Gets fired on end of match.
+ */
+public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (g_HasVoteOccured)
+	{
+		g_HasVoteOccured = false;
+		new String:map[PLATFORM_MAX_PATH + 1];
+		GetNextMap(map, 255);
+		LogMessage("Changing map to %s");
+		ChangeLevel2(map);
+	}
+	
+	return Plugin_Continue;
+}
+
+/*
+ * Gets fired after vote has ended.
+ */
+public OnMapVoteEnd(const String:map[])
+{
+	g_HasVoteOccured = true;
+}
+
+public Action:Cmd_VoteNow(client, args)
+{
+	if (!g_IsMapChooserLoaded)
+	{
+		PrintToChat(client, "[WML] Command unavailable, Extended MapChooser not found!");
+		return Plugin_Handled;
+	}
+	
 	SQL_LockDatabase(g_dbiStorage);
 	new Handle:query = SQL_Query(g_dbiStorage, " \
 		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
@@ -149,35 +183,13 @@ public OnConfigsExecuted()
 	{
 		SQL_FetchString(query, 0, map, sizeof(map));
 		if (NominateMap(map, true, 0) != Nominate_Added)
-			PrintToServer("Nominated map: %s!", map);
+			LogMessage("Nominated map: %s!", map);
 		else
-			PrintToServer("Couldn't nominate %s!", map);
+			LogMessage("Couldn't nominate %s!", map);
 	}
 	
 	SQL_UnlockDatabase(g_dbiStorage);
-}
 
-public Action:Event_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	if (g_HasVoteEnded)
-	{
-		g_HasVoteEnded = false;
-		PrintToChatAll("[WML] Changing map...");
-		new String:dummy[255];
-		GetNextMap(dummy, 255);
-		ChangeLevel2(dummy);
-	}
-	
-	return Plugin_Continue;
-}
-
-public OnMapVoteEnd(const String:map[])
-{
-	g_HasVoteEnded = true;
-}
-
-public Action:VoteNow(client, args)
-{
 	InitiateMapChooserVote(MapChange_MapEnd);
 	
 	return Plugin_Handled;
@@ -202,35 +214,41 @@ public OnPluginEnd()
 		CloseHandle(g_dbiStorage);
 }
 
+/*
+ * Gets fired after all plugins where loaded.
+ */
 public OnAllPluginsLoaded()
 {
 	if (LibraryExists(PLUGIN_EMC))
-	{
 		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
-		PrintToServer("Extended MapChooser available: %d", g_IsMapChooserLoaded);
-	}
 }
 
+/*
+ * Checks if extended API is present.
+ */
 bool:EMC_IsOnMapVoteEndPresent()
 {
 	return (GetFeatureStatus(FeatureType_Native, "IsMapOfficial") == FeatureStatus_Available);
 }
 
+/*
+ * Gets fired after a plugin was loaded.
+ */
 public OnLibraryAdded(const String:name[])
 {
+	// Check for presence of Extended MapChooser
 	if (StrEqual(name, PLUGIN_EMC))
-	{
 		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
-		PrintToServer("Extended MapChooser available: %d", g_IsMapChooserLoaded);
-	}
 }
 
+/*
+ * Gets fired after a plugin was unloaded.
+ */
 public OnLibraryRemoved(const String:name[])
 {
+	// Check for presence of Extended MapChooser
 	if (StrEqual(name, PLUGIN_EMC))
-	{
 		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
-	}
 }
 
 /*
@@ -780,6 +798,7 @@ ChangeLevel2(const String:map[])
 	if (IsMapValid(map))
 	{
 		if (g_cvarChangeMode != INVALID_HANDLE)
+		{
 			if (GetConVarBool(g_cvarChangeMode))
 			{
 				PrintToServer("[WML] Changing mode to: %d", g_SelectedMode);
@@ -790,8 +809,7 @@ ChangeLevel2(const String:map[])
 				// Delay for chat messages
 				CreateTimer(2.0, PerformMapChange, h_MapName);
 			}
-		
-		ChangeLevel2(map);
+		}
 	}
 	else
 		LogError("Map '%s' unexpectedly couldn't be validated!", map);
