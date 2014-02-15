@@ -102,8 +102,8 @@ public OnPluginStart()
 		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
 	
 	// *** Cmds ***
-	RegAdminCmd("sm_wml", DisplayMapList, ADMFLAG_CHANGEMAP, "Display map list of workshop maps");
-	RegAdminCmd("sm_wml_reload", ReloadMapList, ADMFLAG_CHANGEMAP, "Re-create list of workshop maps");
+	RegAdminCmd("sm_wml", Cmd_DisplayMapList, ADMFLAG_CHANGEMAP, "Display map list of workshop maps");
+	RegAdminCmd("sm_wml_reload", Cmd_ReloadMapList, ADMFLAG_CHANGEMAP, "Re-create list of workshop maps");
 	RegAdminCmd("sm_wml_vote_now", Cmd_VoteNow, ADMFLAG_CHANGEMAP, "Bring up map vote menu");
 
 	// *** Hooks ***
@@ -472,7 +472,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 /*
  * Refreshing the map list requested.
  */
-public Action:ReloadMapList(client, args)
+public Action:Cmd_ReloadMapList(client, args)
 {
 	PrintToConsole(client, "[SM] Refreshing map list...");
 	GenerateMapList();
@@ -483,7 +483,7 @@ public Action:ReloadMapList(client, args)
 /*
  * Displaying in-game menu to user.
  */
-public Action:DisplayMapList(client, args)
+public Action:Cmd_DisplayMapList(client, args)
 {
 	// NOTE: stored to g_MapMenu to make Back button work
 	if ((g_MapMenu = BuildCategoryMenu()) == INVALID_HANDLE)
