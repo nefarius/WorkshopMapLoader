@@ -3,7 +3,7 @@
 #include <regex>
 #include <system2>
 
-#define PLUGIN_VERSION 		"0.3.0"
+#define PLUGIN_VERSION 		"0.3.1"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
@@ -582,7 +582,7 @@ bool:DB_GetMapPath(id, String:path[])
 	new String:query[MAX_QUERY_LEN];
 	
 	Format(query, sizeof(query), " \
-		SELECT 'workshop/' Id || '/' || Map \
+		SELECT 'workshop/' || Id || '/' || Map \
 		FROM wml_workshop_maps WHERE Id = %d;", id);
 		
 	SQL_LockDatabase(g_dbiStorage);
