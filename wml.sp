@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.4"
+#define PLUGIN_VERSION 		"0.4.5"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
@@ -156,12 +156,13 @@ public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcas
 	if (g_HasVoteOccured)
 	{
 		g_HasVoteOccured = false;
-		
-		new Float:delay = GetConVarFloat(FindConVar("mp_match_restart_delay"));
+		// Delay actual changelevel so players can see the leader board
+		new Float:delay = GetConVarFloat(FindConVar("mp_endmatch_votenextleveltime"));
 		new String:map[PLATFORM_MAX_PATH + 1];
 		GetNextMap(map, sizeof(map));
 		LogMessage("Changing map to %s", map);
-		ChangeLevel2(map, delay);
+		// Trigger delayed changelevel2
+		ChangeLevel2(map, delay -1);
 	}
 	
 	return Plugin_Continue;
