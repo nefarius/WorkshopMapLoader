@@ -155,7 +155,7 @@ public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcas
 	{
 		g_HasVoteOccured = false;
 		new String:map[PLATFORM_MAX_PATH + 1];
-		GetNextMap(map, 255);
+		GetNextMap(map, sizeof(map));
 		LogMessage("Changing map to %s");
 		ChangeLevel2(map);
 	}
@@ -233,10 +233,17 @@ public Action:Cmd_NominateRandom(client, args)
 	while (SQL_FetchRow(h_Query))
 	{
 		SQL_FetchString(h_Query, 0, map, sizeof(map));
-		if (NominateMap(map, true, 0) != Nominate_Added)
-			PrintToConsole(client, "Nominated map: %s!", map);
-		else
-			PrintToConsole(client, "Couldn't nominate %s!", map);
+		switch (NominateMap(map, true, client))
+		{
+			case Nominate_Added:
+				PrintToConsole(client, "Nominated map: %s", map);
+			case Nominate_InvalidMap:
+				PrintToConsole(client, "Couldn't nominate %s", map);
+			case Nominate_Replaced:
+				PrintToConsole(client, "%s replaced an existing nomination", map);
+			case Nominate_AlreadyInVote:
+				PrintToConsole(client, "%s is already nominated", map);
+		}
 	}
 	
 	SQL_UnlockDatabase(g_dbiStorage);
@@ -847,10 +854,20 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 				// Send info to client
 				PrintToChatAll("[WML] Changing map to %s", map);
 		 
-				// Change mode
-				ChangeMode(g_SelectedMode);
 				// Change the map
-				ChangeLevel2(map);
+				if (IsMapValid(map))
+				{
+					if (g_cvarChangeMode != INVALID_HANDLE)
+						if (GetConVarBool(g_cvarChangeMode))
+						{
+							PrintToServer("[WML] Changing mode to: %d", g_SelectedMode);
+							ChangeMode(g_SelectedMode);
+						}
+					
+					ChangeLevel2(map);
+				}
+				else
+					LogError("Map '%s' unexpectedly couldn't be validated!", map);
 			}
 			else
 				LogError("Map '%s' wasn't found in the database!", id);
@@ -881,24 +898,11 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
  */
 ChangeLevel2(const String:map[])
 {
-	if (IsMapValid(map))
-	{
-		if (g_cvarChangeMode != INVALID_HANDLE)
-		{
-			if (GetConVarBool(g_cvarChangeMode))
-			{
-				PrintToServer("[WML] Changing mode to: %d", g_SelectedMode);
-				
-				// Submit map name to timer callback
-				new Handle:h_MapName = CreateDataPack();
-				WritePackString(h_MapName, map);
-				// Delay for chat messages
-				CreateTimer(2.0, PerformMapChange, h_MapName);
-			}
-		}
-	}
-	else
-		LogError("Map '%s' unexpectedly couldn't be validated!", map);
+	// Submit map name to timer callback
+	new Handle:h_MapName = CreateDataPack();
+	WritePackString(h_MapName, map);
+	// Delay for chat messages
+	CreateTimer(2.0, PerformMapChange, h_MapName);
 }
 
 /*
