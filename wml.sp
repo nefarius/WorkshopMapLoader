@@ -7,7 +7,6 @@
 
 #define PLUGIN_VERSION 		"0.4.6"
 #define PLUGIN_SHORT_NAME	"wml"
-#define WORKSHOP_DIR		"workshop"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
 #define WML_DB_NAME			"nefarius-wml"
