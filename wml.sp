@@ -207,11 +207,16 @@ public Action:Cmd_NominateRandom(client, args)
 		case COMPETITIVE:
 			mode = TAG_Hostage;
 		case ARMSRACE:
-			mode = TAG_Armstrace;
+			mode = TAG_Armsrace;
 		case DEMOLITION:
 			mode = TAG_Demolition;
 		case DEATHMATCH:
 			mode = TAG_Deathmatch;
+		default:
+		{
+			PrintToConsole(client, "Couldn't detect valid game mode!");
+			return Plugin_Handled;
+		}
 	}
 	
 	decl String:query[MAX_QUERY_LEN];
@@ -408,6 +413,8 @@ GetMode()
 		return DEMOLITION;
 	if (type == 1 && mode == 2)
 		return DEATHMATCH;
+		
+	return -1;
 }
 
 /*
