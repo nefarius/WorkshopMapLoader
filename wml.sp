@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.12"
+#define PLUGIN_VERSION 		"0.4.13"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -56,7 +56,6 @@ new Handle:g_cvarChangeMode = INVALID_HANDLE;
 new Handle:g_cvarGameType = INVALID_HANDLE;
 new Handle:g_cvarGameMode = INVALID_HANDLE;
 new Handle:g_cvarAutoLoad = INVALID_HANDLE;
-new Handle:g_cvarIsArmsrace = INVALID_HANDLE;
 new Handle:g_cvarArmsraceWeapon = INVALID_HANDLE;
 
 // Menu
@@ -65,6 +64,28 @@ new Handle:g_MapMenu = INVALID_HANDLE;
 // Regex
 new Handle:g_RegexId = INVALID_HANDLE;
 new Handle:g_RegexMap = INVALID_HANDLE;
+
+// GS:GO Game Types
+enum
+{
+	GameType_Classic		= 0,
+	GameType_GunGame		= 1,
+	GameType_Training		= 2,
+	GameType_Custom			= 3,
+}
+// GS:GO Classic Types
+enum
+{
+	ClassicMode_Casual		= 0,
+	ClassicMode_Competitive	= 1,
+}
+// GS:GO Arsenal Modes
+enum
+{
+	GunGameMode_ArmsRace	= 0,
+	GunGameMode_Demolition	= 1,
+	GunGameMode_DeathMatch	= 2,
+}
 
 
 public Plugin:myinfo =
@@ -103,12 +124,6 @@ public OnPluginStart()
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	if (g_cvarAutoLoad == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
-	// Enable special handling of armsrace sessions
-	g_cvarIsArmsrace = CreateConVar("sm_wml_armsrace", "0",
-		"Automatically bring up vote menu on Armsrace <1 = Enabled, 0 = Disabled/Default>",
-		FCVAR_DONTRECORD, true, 0.0, true, 1.0);
-	if (g_cvarIsArmsrace == INVALID_HANDLE)
-		LogError("[WML] Couldn't register 'sm_wml_armsrace'!");
 	// Enable special handling of armsrace sessions
 	g_cvarArmsraceWeapon = CreateConVar("sm_wml_armsrace_weapon", "awp",
 		"Sets weapon on which the vote will be started on Armsrace <awp = Default>",
@@ -164,7 +179,8 @@ public OnConfigsExecuted()
 
 public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if (GetConVarBool(g_cvarIsArmsrace))
+	// Only intercept if Armsrace mode detected
+	if (GetMode() == ARMSRACE)
 	{
 		new String:weapon[MAX_ATTRIB_LEN];
 		GetEventString(event, "item", weapon, sizeof(weapon));
@@ -309,6 +325,34 @@ public Action:Cmd_VoteNow(client, args)
 
 	InitiateMapChooserVote(MapChange_MapEnd);
 	
+	return Plugin_Handled;
+}
+
+/*
+ * Refreshing the map list requested.
+ */
+public Action:Cmd_ReloadMapList(client, args)
+{
+	PrintToConsole(client, "[SM] Refreshing map list...");
+	GenerateMapList();
+	
+	return Plugin_Handled;
+}
+
+/*
+ * Displaying in-game menu to user.
+ */
+public Action:Cmd_DisplayMapList(client, args)
+{
+	// NOTE: stored to g_MapMenu to make Back button work
+	if ((g_MapMenu = BuildCategoryMenu()) == INVALID_HANDLE)
+	{
+		PrintToConsole(client, "[WML] The map list and/or menu could not be generated!");
+		return Plugin_Handled;
+	}	
+ 
+	DisplayMenu(g_MapMenu, client, MENU_TIME_FOREVER);
+ 
 	return Plugin_Handled;
 }
 
@@ -458,15 +502,15 @@ GetMode()
 	new type = GetConVarInt(g_cvarGameType);
 	new mode = GetConVarInt(g_cvarGameMode);
 	
-	if (type == 0 && mode == 0)
+	if (type == GameType_Classic && mode == ClassicMode_Casual)
 		return CASUAL;
-	if (type == 0 && mode == 1)
+	if (type == GameType_Classic && mode == ClassicMode_Competitive)
 		return COMPETITIVE;
-	if (type == 1 && mode == 0)
+	if (type == GameType_GunGame && mode == GunGameMode_ArmsRace)
 		return ARMSRACE;
-	if (type == 1 && mode == 1)
+	if (type == GameType_GunGame && mode == GunGameMode_Demolition)
 		return DEMOLITION;
-	if (type == 1 && mode == 2)
+	if (type == GameType_GunGame && mode == GunGameMode_DeathMatch)
 		return DEATHMATCH;
 		
 	return -1;
@@ -495,32 +539,32 @@ ChangeMode(mode)
 // https://forums.alliedmods.net/showthread.php?p=1891305
 ChangeModeCasual()
 {
-	SetConVarInt(g_cvarGameType, 0);
-	SetConVarInt(g_cvarGameMode, 0);
+	SetConVarInt(g_cvarGameType, GameType_Classic);
+	SetConVarInt(g_cvarGameMode, ClassicMode_Casual);
 }
 
 ChangeModeCompetitive()
 {
-	SetConVarInt(g_cvarGameType, 0);
-	SetConVarInt(g_cvarGameMode, 1);
+	SetConVarInt(g_cvarGameType, GameType_Classic);
+	SetConVarInt(g_cvarGameMode, ClassicMode_Competitive);
 }
 
 ChangeModeArmsrace()
 {
-	SetConVarInt(g_cvarGameType, 1);
-	SetConVarInt(g_cvarGameMode, 0);
+	SetConVarInt(g_cvarGameType, GameType_GunGame);
+	SetConVarInt(g_cvarGameMode, GunGameMode_ArmsRace);
 }
 
 ChangeModeDemolition()
 {
-	SetConVarInt(g_cvarGameType, 1);
-	SetConVarInt(g_cvarGameMode, 1);
+	SetConVarInt(g_cvarGameType, GameType_GunGame);
+	SetConVarInt(g_cvarGameMode, GunGameMode_Demolition);
 }
 
 ChangeModeDeathmatch()
 {
-	SetConVarInt(g_cvarGameType, 1);
-	SetConVarInt(g_cvarGameMode, 2);
+	SetConVarInt(g_cvarGameType, GameType_GunGame);
+	SetConVarInt(g_cvarGameMode, GunGameMode_DeathMatch);
 }
 
 /*
@@ -606,34 +650,6 @@ BrowseKeyValues(Handle:kv, const String:id[])
 			}
 		}
 	} while (KvGotoNextKey(kv, false));
-}
-
-/*
- * Refreshing the map list requested.
- */
-public Action:Cmd_ReloadMapList(client, args)
-{
-	PrintToConsole(client, "[SM] Refreshing map list...");
-	GenerateMapList();
-	
-	return Plugin_Handled;
-}
-
-/*
- * Displaying in-game menu to user.
- */
-public Action:Cmd_DisplayMapList(client, args)
-{
-	// NOTE: stored to g_MapMenu to make Back button work
-	if ((g_MapMenu = BuildCategoryMenu()) == INVALID_HANDLE)
-	{
-		PrintToConsole(client, "[WML] The map list and/or menu could not be generated!");
-		return Plugin_Handled;
-	}	
- 
-	DisplayMenu(g_MapMenu, client, MENU_TIME_FOREVER);
- 
-	return Plugin_Handled;
 }
 
 /*
