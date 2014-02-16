@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.10"
+#define PLUGIN_VERSION 		"0.4.11"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -294,6 +294,7 @@ public Action:Cmd_NominateRandom(client, args)
 	}
 	
 	SQL_UnlockDatabase(g_dbiStorage);
+	CloseHandle(h_Query);
 	
 	return Plugin_Handled;
 }
@@ -836,9 +837,13 @@ bool:DB_GetMapPath(id, String:path[])
 	SQL_UnlockDatabase(g_dbiStorage);
 			
 	if (!SQL_FetchRow(h_Query))
+	{
+		CloneHandle(h_Query);
 		return false;
+	}
 	
 	SQL_FetchString(h_Query, 0, path, PLATFORM_MAX_PATH + 1);
+	CloseHandle(h_Query);
 	
 	return true;
 }
@@ -873,6 +878,7 @@ Handle:BuildMapMenu(String:category[])
 		}
 	}
 	SQL_UnlockDatabase(g_dbiStorage);
+	CloseHandle(h_Query);
  
 	// Finally, set the title
 	SetMenuTitle(menu, "Please select a map:");
