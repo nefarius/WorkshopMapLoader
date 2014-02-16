@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.13"
+#define PLUGIN_VERSION 		"0.4.14"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -52,6 +52,7 @@ new Handle:g_dbiStorage = INVALID_HANDLE;
 // System
 new g_SelectedMode = -1;
 new bool:g_IsChangingLevel = false;
+new bool:g_IsArmsrace = false;
 new Handle:g_cvarChangeMode = INVALID_HANDLE;
 new Handle:g_cvarGameType = INVALID_HANDLE;
 new Handle:g_cvarGameMode = INVALID_HANDLE;
@@ -180,7 +181,7 @@ public OnConfigsExecuted()
 public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	// Only intercept if Armsrace mode detected
-	if (GetMode() == ARMSRACE)
+	if (g_IsArmsrace)
 	{
 		new String:weapon[MAX_ATTRIB_LEN];
 		GetEventString(event, "item", weapon, sizeof(weapon));
@@ -420,6 +421,12 @@ public OnMapStart()
 	// This will activate Cvar Hook only on map change
 	// Important to not bust other plugins
 	g_IsChangingLevel = false;
+	
+	// Check game mode only on start to improve performance
+	if (GetMode() == ARMSRACE)
+		g_IsArmsrace = true;
+	else
+		g_IsArmsrace = false;
 	
 	// no return required
 }
