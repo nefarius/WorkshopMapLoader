@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.6"
+#define PLUGIN_VERSION 		"0.4.8"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -44,6 +44,7 @@
 #define ERROR_NO_EMC		"[WML] Command unavailable, Extended MapChooser not found!"
 new bool:g_IsMapChooserLoaded = false;
 new bool:g_HasVoteOccured = false;
+new bool:g_IsVoteInTriggered = false;
 
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;
@@ -55,6 +56,8 @@ new Handle:g_cvarChangeMode = INVALID_HANDLE;
 new Handle:g_cvarGameType = INVALID_HANDLE;
 new Handle:g_cvarGameMode = INVALID_HANDLE;
 new Handle:g_cvarAutoLoad = INVALID_HANDLE;
+new Handle:g_cvarIsArmsrace = INVALID_HANDLE;
+new Handle:g_cvarArmsraceWeapon = INVALID_HANDLE;
 
 // Menu
 new Handle:g_MapMenu = INVALID_HANDLE;
@@ -100,6 +103,18 @@ public OnPluginStart()
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	if (g_cvarAutoLoad == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
+	// Enable special handling of armsrace sessions
+	g_cvarIsArmsrace = CreateConVar("sm_wml_armsrace", "0",
+		"Automatically bring up vote menu on Armsrace <1 = Enabled, 0 = Disabled/Default>",
+		FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	if (g_cvarIsArmsrace == INVALID_HANDLE)
+		LogError("[WML] Couldn't register 'sm_wml_armsrace'!");
+	// Enable special handling of armsrace sessions
+	g_cvarArmsraceWeapon = CreateConVar("sm_wml_armsrace_weapon", "awp",
+		"Sets weapon on which the vote will be started on Armsrace <awp = Default>",
+		FCVAR_NOTIFY);
+	if (g_cvarArmsraceWeapon == INVALID_HANDLE)
+		LogError("[WML] Couldn't register 'sm_wml_armsrace'!");
 	
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", Cmd_DisplayMapList, ADMFLAG_CHANGEMAP, 
@@ -119,6 +134,8 @@ public OnPluginStart()
 	HookConVarChange(g_cvarGameMode, OnConvarChanged);
 	// Intercept round end for mapchooser
 	HookEvent("cs_win_panel_match", Event_GameEnd, EventHookMode_PostNoCopy);
+	// Intercept item equipment for mapchooser
+	HookEvent("item_equip", Event_ItemEquip, EventHookMode_Post);
 	
 	// Load/Store Cvars
 	AutoExecConfig(true, PLUGIN_SHORT_NAME);
@@ -145,6 +162,30 @@ public OnConfigsExecuted()
 		GenerateMapList();
 }
 
+public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (GetConVarBool(g_cvarIsArmsrace))
+	{
+		new String:weapon[MAX_ATTRIB_LEN];
+		GetEventString(event, "item", weapon, sizeof(weapon));
+		
+		new String:setting[MAX_ATTRIB_LEN];
+		GetConVarString(g_cvarArmsraceWeapon, setting, sizeof(setting));
+		
+		if (StrEqual(weapon, setting, false) && !g_IsVoteInTriggered)
+		{
+			if (!g_IsMapChooserLoaded)
+				return Plugin_Continue;
+			
+			g_IsVoteInTriggered = true;
+
+			InitiateMapChooserVote(MapChange_MapEnd);
+		}
+	}
+	
+	return Plugin_Continue;
+}
+
 /*
  * Gets fired on end of match.
  */
@@ -155,6 +196,7 @@ public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcas
 	if (g_HasVoteOccured)
 	{
 		g_HasVoteOccured = false;
+		g_IsVoteInTriggered = false;
 		// Delay actual changelevel so players can see the leader board
 		new Float:delay = GetConVarFloat(FindConVar("mp_endmatch_votenextleveltime"));
 		new String:map[PLATFORM_MAX_PATH + 1];
