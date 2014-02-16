@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.11"
+#define PLUGIN_VERSION 		"0.4.12"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -112,7 +112,7 @@ public OnPluginStart()
 	// Enable special handling of armsrace sessions
 	g_cvarArmsraceWeapon = CreateConVar("sm_wml_armsrace_weapon", "awp",
 		"Sets weapon on which the vote will be started on Armsrace <awp = Default>",
-		FCVAR_DONTRECORD);
+		FCVAR_NOTIFY);
 	if (g_cvarArmsraceWeapon == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_armsrace_weapon'!");
 	
