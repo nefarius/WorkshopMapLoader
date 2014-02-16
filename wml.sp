@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.8"
+#define PLUGIN_VERSION 		"0.4.10"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -106,15 +106,15 @@ public OnPluginStart()
 	// Enable special handling of armsrace sessions
 	g_cvarIsArmsrace = CreateConVar("sm_wml_armsrace", "0",
 		"Automatically bring up vote menu on Armsrace <1 = Enabled, 0 = Disabled/Default>",
-		FCVAR_NOTIFY, true, 0.0, true, 1.0);
+		FCVAR_DONTRECORD, true, 0.0, true, 1.0);
 	if (g_cvarIsArmsrace == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_armsrace'!");
 	// Enable special handling of armsrace sessions
 	g_cvarArmsraceWeapon = CreateConVar("sm_wml_armsrace_weapon", "awp",
 		"Sets weapon on which the vote will be started on Armsrace <awp = Default>",
-		FCVAR_NOTIFY);
+		FCVAR_DONTRECORD);
 	if (g_cvarArmsraceWeapon == INVALID_HANDLE)
-		LogError("[WML] Couldn't register 'sm_wml_armsrace'!");
+		LogError("[WML] Couldn't register 'sm_wml_armsrace_weapon'!");
 	
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", Cmd_DisplayMapList, ADMFLAG_CHANGEMAP, 
