@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.16"
+#define PLUGIN_VERSION 		"0.4.18"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -383,15 +383,15 @@ public OnPluginEnd()
 public OnAllPluginsLoaded()
 {
 	if (LibraryExists(PLUGIN_EMC))
-		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
+		g_IsMapChooserLoaded = IsEMCPresent();
 }
 
 /*
- * Checks if extended API is present.
+ * Checks if Extended MapChooser is present.
  */
-bool:EMC_IsOnMapVoteEndPresent()
+bool:IsEMCPresent()
 {
-	return (GetFeatureStatus(FeatureType_Native, "IsMapOfficial") == FeatureStatus_Available);
+	return (FindConVar("mce_version") != INVALID_HANDLE);
 }
 
 /*
@@ -401,7 +401,7 @@ public OnLibraryAdded(const String:name[])
 {
 	// Check for presence of Extended MapChooser
 	if (StrEqual(name, PLUGIN_EMC))
-		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
+		g_IsMapChooserLoaded = IsEMCPresent();
 }
 
 /*
@@ -411,7 +411,7 @@ public OnLibraryRemoved(const String:name[])
 {
 	// Check for presence of Extended MapChooser
 	if (StrEqual(name, PLUGIN_EMC))
-		g_IsMapChooserLoaded = EMC_IsOnMapVoteEndPresent();
+		g_IsMapChooserLoaded = IsEMCPresent();
 }
 
 /*
@@ -520,7 +520,7 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
 			}
 			
 			// Delete (temporary) Kv file
-			//DeleteFile(path);
+			DeleteFile(path);
 		}
 		default:
 			CloseHandle(file);
