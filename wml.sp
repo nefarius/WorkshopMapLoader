@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.15"
+#define PLUGIN_VERSION 		"0.4.16"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -460,45 +460,70 @@ public OnConvarChanged(Handle:cvar, const String:oldVal[], const String:newVal[]
  */
 public OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
 {
-	// Response is complete
-	if(status == CMD_SUCCESS)
+	// Get associated ID
+	decl String:id[MAX_ID_LEN];
+	ResetPack(data);
+	ReadPackString(data, id, sizeof(id));
+	
+	if (status == CMD_ERROR)
 	{
-		// Get associated ID
-		decl String:id[MAX_ID_LEN];
-		ResetPack(data);
-		ReadPackString(data, id, sizeof(id));
+		LogError("Steam API error: couldn't fetch data for file ID %s", id);
 		CloseHandle(data);
-		
-		// Create temporary directory
-		decl String:path[PLATFORM_MAX_PATH + 1];
-		BuildPath(Path_SM, path, sizeof(path), "%s", WML_TMP_DIR);
-		if (!DirExists(path))
-			CreateDirectory(path, 511);
-		// Create Kv file
-		BuildPath(Path_SM, path, sizeof(path), "%s/%s.txt", WML_TMP_DIR, id);
-		new Handle:file = OpenFile(path, "wt");
-		if (file == INVALID_HANDLE)
-			LogError("Couldn't create tmp file!");
-		WriteFileString(file, output, false);
-		CloseHandle(file);
-		
-		// Begin parse response
-		new Handle:kv = CreateKeyValues("response");
-		if(kv != INVALID_HANDLE)
+		return;
+	}
+	
+	// Create temporary directory
+	decl String:path[PLATFORM_MAX_PATH + 1];
+	BuildPath(Path_SM, path, sizeof(path), "%s", WML_TMP_DIR);
+	if (!DirExists(path))
+		CreateDirectory(path, 511);
+	
+	// Create Kv file
+	BuildPath(Path_SM, path, sizeof(path), "%s/%s.txt", WML_TMP_DIR, id);
+	new Handle:file = OpenFile(path, "a+t");
+	if (file == INVALID_HANDLE)
+	{
+		LogError("Couldn't create temporary file %s", path);
+		CloseHandle(data);
+		return;
+	}
+	
+	// Interpret response status
+	switch (status)
+	{
+		case CMD_PROGRESS:
 		{
-			if (FileToKeyValues(kv, path))
-			{
-				BrowseKeyValues(kv, id);
-				CloseHandle(kv);
-				// Once the map has been tagged, it's origin may be purged
-				DB_RemoveUntagged(StringToInt(id));
-			}
-			else
-				LogError("Couldn't open KeyValues!");
+			LogMessage("Successfully received a part for file ID %s", id);
+			WriteFileString(file, output, false);
+			CloseHandle(file);
 		}
-		
-		// Delete (temporary) Kv file
-		DeleteFile(path);
+		case CMD_SUCCESS:
+		{
+			CloseHandle(data);
+			LogMessage("Successfully received file details for ID %s", id);
+			WriteFileString(file, output, false);
+			CloseHandle(file);
+			
+			// Begin parse response
+			new Handle:kv = CreateKeyValues("response");
+			if(kv != INVALID_HANDLE)
+			{
+				if (FileToKeyValues(kv, path))
+				{
+					BrowseKeyValues(kv, id);
+					CloseHandle(kv);
+					// Once the map has been tagged, it's origin may be purged
+					DB_RemoveUntagged(StringToInt(id));
+				}
+				else
+					LogError("Couldn't open KeyValues for file ID %s", id);
+			}
+			
+			// Delete (temporary) Kv file
+			//DeleteFile(path);
+		}
+		default:
+			CloseHandle(file);
 	}
 }
 
@@ -655,6 +680,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 			else
 			{
 				// Found an empty sub section. It can be handled here if necessary.
+				LogError("Unexpected section found in file with ID %s", id);
 			}
 		}
 	} while (KvGotoNextKey(kv, false));
