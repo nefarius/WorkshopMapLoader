@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.18"
+#define PLUGIN_VERSION 		"0.4.19"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -127,8 +127,7 @@ public OnPluginStart()
 		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
 	// Enable special handling of armsrace sessions
 	g_cvarArmsraceWeapon = CreateConVar("sm_wml_armsrace_weapon", "awp",
-		"Sets weapon on which the vote will be started on Armsrace <awp = Default>",
-		FCVAR_NOTIFY);
+		"Sets weapon on which the vote will be started on Armsrace <awp = Default>");
 	if (g_cvarArmsraceWeapon == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_armsrace_weapon'!");
 	
@@ -247,7 +246,7 @@ public Action:Cmd_NominateRandom(client, args)
 	// Is argument supplied
 	if (args < 1)
 	{
-		PrintToConsole(client, "No argument specified.");
+		PrintToConsole(client, "No argument specified");
 		return Plugin_Handled;
 	}
 	
@@ -258,7 +257,7 @@ public Action:Cmd_NominateRandom(client, args)
 	// Is argument valid/within range
 	if (0 >= (count = StringToInt(buffer)))
 	{
-		PrintToConsole(client, "Invalid argument specified.");
+		PrintToConsole(client, "Invalid argument specified");
 		return Plugin_Handled;
 	}
 	
@@ -278,7 +277,7 @@ public Action:Cmd_NominateRandom(client, args)
 			mode = TAG_Deathmatch;
 		default:
 		{
-			PrintToConsole(client, "Couldn't detect valid game mode!");
+			PrintToConsole(client, "Couldn't detect valid game mode");
 			return Plugin_Handled;
 		}
 	}
@@ -320,10 +319,12 @@ public Action:Cmd_VoteNow(client, args)
 {
 	if (!g_IsMapChooserLoaded)
 	{
+		LogError("Vote was requested but Extended MapChooser is not loaded");
 		PrintToChat(client, ERROR_NO_EMC);
 		return Plugin_Handled;
 	}
 
+	LogMessage("Requested voting for next map");
 	InitiateMapChooserVote(MapChange_MapEnd);
 	
 	return Plugin_Handled;
