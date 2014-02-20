@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.14"
+#define PLUGIN_VERSION 		"0.4.15"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -334,8 +334,9 @@ public Action:Cmd_VoteNow(client, args)
  */
 public Action:Cmd_ReloadMapList(client, args)
 {
-	PrintToConsole(client, "[SM] Refreshing map list...");
+	PrintToConsole(client, "[WML] Refreshing map details...");
 	GenerateMapList();
+	PrintToConsole(client, "[WML] Done refreshing map details");
 	
 	return Plugin_Handled;
 }
