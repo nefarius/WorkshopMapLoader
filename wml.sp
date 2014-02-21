@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.19"
+#define PLUGIN_VERSION 		"0.4.20"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -175,6 +175,8 @@ public OnConfigsExecuted()
 	// Start fetching content if wished by user
 	if (GetConVarBool(g_cvarAutoLoad))
 		GenerateMapList();
+	else
+		LogMessage("Database won't be refreshed because 'sm_wml_autoreload' is 0");
 }
 
 public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadcast)
