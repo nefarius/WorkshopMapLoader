@@ -1,3 +1,14 @@
+/*
+ * Workshop Map Loader for Counter-Strike: Global Offensive
+ *                    made by Benjamin "Nefarius" Höglinger
+ *                                      http://nefarius.at/
+ * 
+ * SOURCE & LICENSE
+ * ================
+ * https://github.com/nefarius/WorkshopMapLoader
+ * 
+ */
+
 #pragma semicolon 1
 #include <sourcemod>
 #include <regex>
