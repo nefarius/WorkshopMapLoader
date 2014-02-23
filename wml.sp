@@ -16,7 +16,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.21"
+#define PLUGIN_VERSION 		"0.4.24"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -219,11 +219,15 @@ public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadc
 			
 			// Get name of player who gained weapon
 			new userid = GetEventInt(event, "userid");
-			decl String:player[MAX_NAME_LENGTH];
-			GetClientName(userid, player, sizeof(player));
-			// Log info
-			LogMessage("Requesting vote because '%s' acquired weapon '%s'",
-				player, weapon);
+			new user_index = 0;
+			if ((user_index = GetClientOfUserId(userid)) > 0)
+			{
+				decl String:player[MAX_NAME_LENGTH];
+				GetClientName(user_index, player, sizeof(player));
+				// Log info
+				LogMessage("Requesting vote because '%s' acquired weapon '%s'",
+					player, weapon);
+			}
 			
 			// Request vote
 			InitiateMapChooserVote(MapChange_MapEnd);
@@ -492,7 +496,6 @@ public OnConvarChanged(Handle:cvar, const String:oldVal[], const String:newVal[]
 
 /*
  * Gets called when response is received.
- * TODO: proper handling if response is over 4KBytes.
  */
 public OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
 {
@@ -1001,7 +1004,8 @@ public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
 					if (g_cvarChangeMode != INVALID_HANDLE)
 						if (GetConVarBool(g_cvarChangeMode))
 						{
-							PrintToServer("[WML] Changing mode to: %d", g_SelectedMode);
+							// TODO: display name instead of index
+							LogMessage("Changing mode to: %d", g_SelectedMode);
 							ChangeMode(g_SelectedMode);
 						}
 					
@@ -1059,6 +1063,7 @@ public Action:PerformMapChange(Handle:timer, Handle:pack)
 	
 	// We enter protected state
 	g_IsChangingLevel = true;
+	LogMessage("Changing map to %s", map);
 	// Fire!
 	ServerCommand("changelevel2 %s", map);
 }
