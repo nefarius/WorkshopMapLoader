@@ -3,8 +3,8 @@
  *                    made by Benjamin "Nefarius" Höglinger
  *                                      http://nefarius.at/
  * 
- * SOURCE & LICENSE
- * ================
+ * BINARY, SOURCE & LICENSE
+ * ========================
  * https://github.com/nefarius/WorkshopMapLoader
  * 
  */
@@ -16,7 +16,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser_extended>
 
-#define PLUGIN_VERSION 		"0.4.20"
+#define PLUGIN_VERSION 		"0.4.21"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -136,7 +136,7 @@ public OnPluginStart()
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	if (g_cvarAutoLoad == INVALID_HANDLE)
 		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
-	// Enable special handling of armsrace sessions
+	// Enable special handling of Armsrace sessions
 	g_cvarArmsraceWeapon = CreateConVar("sm_wml_armsrace_weapon", "awp",
 		"Sets weapon on which the vote will be started on Armsrace <awp = Default>");
 	if (g_cvarArmsraceWeapon == INVALID_HANDLE)
@@ -154,10 +154,18 @@ public OnPluginStart()
 
 	// *** Hooks ***
 	g_cvarGameType = FindConVar("game_type");
-	g_cvarGameMode = FindConVar("game_mode");
 	// Intercept game mode/type changes
-	HookConVarChange(g_cvarGameType, OnConvarChanged);
-	HookConVarChange(g_cvarGameMode, OnConvarChanged);
+	if (g_cvarGameType != INVALID_HANDLE)
+		HookConVarChange(g_cvarGameType, OnConvarChanged);
+	else
+		LogError("Convar 'game_type' not found! Are you running CS:GO?");
+	// Intercept game mode/type changes	
+	g_cvarGameMode = FindConVar("game_mode");
+	if (g_cvarGameMode != INVALID_HANDLE)
+		HookConVarChange(g_cvarGameMode, OnConvarChanged);
+	else
+		LogError("Convar 'game_mode' not found! Are you running CS:GO?");
+		
 	// Intercept round end for mapchooser
 	HookEvent("cs_win_panel_match", Event_GameEnd, EventHookMode_PostNoCopy);
 	// Intercept item equipment for mapchooser
