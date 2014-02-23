@@ -63,6 +63,7 @@ new Handle:g_dbiStorage = INVALID_HANDLE;
 // System
 new g_SelectedMode = -1;
 new bool:g_IsChangingLevel = false;
+new bool:g_IsChangingMode = false;
 new bool:g_IsArmsrace = false;
 new Handle:g_cvarChangeMode = INVALID_HANDLE;
 new Handle:g_cvarGameType = INVALID_HANDLE;
@@ -203,10 +204,10 @@ public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadc
 	// Only intercept if Armsrace mode detected
 	if (g_IsArmsrace)
 	{
-		new String:weapon[MAX_ATTRIB_LEN];
+		decl String:weapon[MAX_ATTRIB_LEN];
 		GetEventString(event, "item", weapon, sizeof(weapon));
 		
-		new String:setting[MAX_ATTRIB_LEN];
+		decl String:setting[MAX_ATTRIB_LEN];
 		GetConVarString(g_cvarArmsraceWeapon, setting, sizeof(setting));
 		
 		if (StrEqual(weapon, setting, false) && !g_IsVoteInTriggered)
@@ -215,7 +216,16 @@ public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadc
 				return Plugin_Continue;
 			
 			g_IsVoteInTriggered = true;
-
+			
+			// Get name of player who gained weapon
+			new userid = GetEventInt(event, "userid");
+			decl String:player[MAX_NAME_LENGTH];
+			GetClientName(userid, player, sizeof(player));
+			// Log info
+			LogMessage("Requesting vote because '%s' acquired weapon '%s'",
+				player, weapon);
+			
+			// Request vote
 			InitiateMapChooserVote(MapChange_MapEnd);
 		}
 	}
@@ -468,9 +478,13 @@ public OnConvarChanged(Handle:cvar, const String:oldVal[], const String:newVal[]
 			// Let everything pass 
 			if (cvar == g_cvarGameMode || cvar == g_cvarGameType)
 			{
-				PrintToServer("[WML] Game Mode/Type changed outside of WML, correcting...");
-				// Override settings
-				ChangeMode(g_SelectedMode);
+				// Prevent endless loop
+				if (!g_IsChangingMode)
+				{
+					LogMessage("Game Mode/Type changed unexpectedly, correcting...");
+					// Override settings
+					ChangeMode(g_SelectedMode);
+				}
 			}
 		}
 	}
@@ -576,6 +590,7 @@ GetMode()
  */
 ChangeMode(mode)
 {
+	g_IsChangingMode = true;
 	switch (mode)
 	{
 		case CASUAL:
@@ -589,6 +604,7 @@ ChangeMode(mode)
 		case DEATHMATCH:
 			ChangeModeDeathmatch();
 	}
+	g_IsChangingMode = false;
 }
 
 // https://forums.alliedmods.net/showthread.php?p=1891305
