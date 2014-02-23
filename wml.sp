@@ -14,9 +14,9 @@
 #include <regex>
 #include <system2>
 #undef REQUIRE_PLUGIN
-#include <mapchooser_extended>
+#include <mapchooser>
 
-#define PLUGIN_VERSION 		"0.4.24"
+#define PLUGIN_VERSION 		"0.4.25"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -54,7 +54,6 @@
 #define PLUGIN_EMC			"mapchooser"
 #define ERROR_NO_EMC		"[WML] Command unavailable, Extended MapChooser not found!"
 new bool:g_IsMapChooserLoaded = false;
-new bool:g_HasVoteOccured = false;
 new bool:g_IsVoteInTriggered = false;
 
 // Database
@@ -242,31 +241,18 @@ public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadc
  */
 public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	LogMessage("Detected end of game");
-	
-	if (g_HasVoteOccured)
-	{
-		g_HasVoteOccured = false;
-		g_IsVoteInTriggered = false;
-		// Delay actual changelevel so players can see the leader board
-		new Float:delay = GetConVarFloat(FindConVar("mp_endmatch_votenextleveltime"));
-		new String:map[PLATFORM_MAX_PATH + 1];
-		GetNextMap(map, sizeof(map));
-		LogMessage("Changing map to %s", map);
-		// Trigger delayed changelevel2
-		ChangeLevel2(map, delay);
-	}
+	LogMessage("Detected end of game, initializing map change...");
+
+	g_IsVoteInTriggered = false;
+	// Delay actual changelevel so players can see the leader board
+	new Float:delay = GetConVarFloat(FindConVar("mp_endmatch_votenextleveltime"));
+	new String:map[PLATFORM_MAX_PATH + 1];
+	GetNextMap(map, sizeof(map));
+	LogMessage("Changing map to %s", map);
+	// Trigger delayed changelevel2
+	ChangeLevel2(map, delay);
 	
 	return Plugin_Continue;
-}
-
-/*
- * Gets fired after vote has ended.
- */
-public OnMapVoteEnd(const String:map[])
-{
-	LogMessage("%s has been chosen to be the next map", map);
-	g_HasVoteOccured = true;
 }
 
 public Action:Cmd_NominateRandom(client, args)
@@ -427,7 +413,7 @@ public OnAllPluginsLoaded()
  */
 bool:IsEMCPresent()
 {
-	return (FindConVar("mce_version") != INVALID_HANDLE);
+	return true;
 }
 
 /*
