@@ -16,7 +16,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser>
 
-#define PLUGIN_VERSION 		"0.4.25"
+#define PLUGIN_VERSION 		"0.4.26"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -42,17 +42,9 @@
 #define WAPI_USERAGENT		"Valve/Steam HTTP Client 1.0"
 #define WAPI_GFDETAILS		"http://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
 
-// Next Map Mode
-// https://forums.alliedmods.net/showthread.php?p=1831213
-#define CASUAL				0
-#define COMPETITIVE			1
-#define ARMSRACE			2
-#define DEMOLITION			3
-#define DEATHMATCH			4
-
-// Extended Map Chooser
-#define PLUGIN_EMC			"mapchooser"
-#define ERROR_NO_EMC		"[WML] Command unavailable, Extended MapChooser not found!"
+// Map Chooser
+#define PLUGIN_MC			"mapchooser"
+#define ERROR_NO_MC			"[WML] Command unavailable, MapChooser not loaded!"
 new bool:g_IsMapChooserLoaded = false;
 new bool:g_IsVoteInTriggered = false;
 
@@ -99,6 +91,17 @@ enum
 	GunGameMode_DeathMatch	= 2,
 }
 
+// CS:GO Next Map Mode
+enum
+{
+	NextMapMode_Casual		= 0,
+	NextMapMode_Competitive	= 1,
+	NextMapMode_Armsrace	= 2,
+	NextMapMode_Demolition	= 3,
+	NextMapMode_Deathmatch	= 4,
+	NextMapMode_Custom		= 5,
+}
+
 
 public Plugin:myinfo =
 {
@@ -108,6 +111,11 @@ public Plugin:myinfo =
 	version = PLUGIN_VERSION,
 	url = "https://github.com/nefarius/WorkshopMapLoader"
 }
+
+/* ================================================================================
+ * BUILT-IN FORWARDS
+ * ================================================================================
+ */
 
 /*
  * Plugin load event.
@@ -198,188 +206,6 @@ public OnConfigsExecuted()
 		LogMessage("Database won't be refreshed because 'sm_wml_autoreload' is 0");
 }
 
-public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	// Only intercept if Armsrace mode detected
-	if (g_IsArmsrace)
-	{
-		decl String:weapon[MAX_ATTRIB_LEN];
-		GetEventString(event, "item", weapon, sizeof(weapon));
-		
-		decl String:setting[MAX_ATTRIB_LEN];
-		GetConVarString(g_cvarArmsraceWeapon, setting, sizeof(setting));
-		
-		if (StrEqual(weapon, setting, false) && !g_IsVoteInTriggered)
-		{
-			if (!g_IsMapChooserLoaded)
-				return Plugin_Continue;
-			
-			g_IsVoteInTriggered = true;
-			
-			// Get name of player who gained weapon
-			new userid = GetEventInt(event, "userid");
-			new user_index = 0;
-			if ((user_index = GetClientOfUserId(userid)) > 0)
-			{
-				decl String:player[MAX_NAME_LENGTH];
-				GetClientName(user_index, player, sizeof(player));
-				// Log info
-				LogMessage("Requesting vote because '%s' acquired weapon '%s'",
-					player, weapon);
-			}
-			
-			// Request vote
-			InitiateMapChooserVote(MapChange_MapEnd);
-		}
-	}
-	
-	return Plugin_Continue;
-}
-
-/*
- * Gets fired on end of match.
- */
-public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	LogMessage("Detected end of game, initializing map change...");
-
-	g_IsVoteInTriggered = false;
-	// Delay actual changelevel so players can see the leader board
-	new Float:delay = GetConVarFloat(FindConVar("mp_endmatch_votenextleveltime"));
-	new String:map[PLATFORM_MAX_PATH + 1];
-	GetNextMap(map, sizeof(map));
-	LogMessage("Changing map to %s", map);
-	// Trigger delayed changelevel2
-	ChangeLevel2(map, delay);
-	
-	return Plugin_Continue;
-}
-
-public Action:Cmd_NominateRandom(client, args)
-{
-	// Is Extended MapChooser available
-	if (!g_IsMapChooserLoaded)
-	{
-		PrintToChat(client, ERROR_NO_EMC);
-		return Plugin_Handled;
-	}
-	
-	// Is argument supplied
-	if (args < 1)
-	{
-		PrintToConsole(client, "No argument specified");
-		return Plugin_Handled;
-	}
-	
-	decl String:buffer[3];
-	new count = 0;
-	
-	GetCmdArgString(buffer, sizeof(buffer));
-	// Is argument valid/within range
-	if (0 >= (count = StringToInt(buffer)))
-	{
-		PrintToConsole(client, "Invalid argument specified");
-		return Plugin_Handled;
-	}
-	
-	decl String:mode[MAX_ATTRIB_LEN];
-	// Detect current mode to query only matching maps
-	switch (GetMode())
-	{
-		case CASUAL:
-			mode = TAG_Classic;
-		case COMPETITIVE:
-			mode = TAG_Hostage;
-		case ARMSRACE:
-			mode = TAG_Armsrace;
-		case DEMOLITION:
-			mode = TAG_Demolition;
-		case DEATHMATCH:
-			mode = TAG_Deathmatch;
-		default:
-		{
-			PrintToConsole(client, "Couldn't detect valid game mode");
-			return Plugin_Handled;
-		}
-	}
-	
-	decl String:query[MAX_QUERY_LEN];
-	Format(query, sizeof(query), " \
-		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
-		WHERE Tag = \"%s\" \
-		ORDER BY RANDOM() LIMIT %d;", mode, count);
-	
-	SQL_LockDatabase(g_dbiStorage);	
-	new Handle:h_Query = SQL_Query(g_dbiStorage, query);
-	
-	decl String:map[MAX_ID_LEN];
-	// Enumerate through all the results
-	while (SQL_FetchRow(h_Query))
-	{
-		SQL_FetchString(h_Query, 0, map, sizeof(map));
-		switch (NominateMap(map, true, client))
-		{
-			case Nominate_Added:
-				PrintToConsole(client, "Nominated map: %s", map);
-			case Nominate_InvalidMap:
-				PrintToConsole(client, "Couldn't nominate %s", map);
-			case Nominate_Replaced:
-				PrintToConsole(client, "%s replaced an existing nomination", map);
-			case Nominate_AlreadyInVote:
-				PrintToConsole(client, "%s is already nominated", map);
-		}
-	}
-	
-	SQL_UnlockDatabase(g_dbiStorage);
-	CloseHandle(h_Query);
-	
-	return Plugin_Handled;
-}
-
-public Action:Cmd_VoteNow(client, args)
-{
-	if (!g_IsMapChooserLoaded)
-	{
-		LogError("Vote was requested but Extended MapChooser is not loaded");
-		PrintToChat(client, ERROR_NO_EMC);
-		return Plugin_Handled;
-	}
-
-	LogMessage("Requested voting for next map");
-	InitiateMapChooserVote(MapChange_MapEnd);
-	
-	return Plugin_Handled;
-}
-
-/*
- * Refreshing the map list requested.
- */
-public Action:Cmd_ReloadMapList(client, args)
-{
-	PrintToConsole(client, "[WML] Refreshing map details...");
-	GenerateMapList();
-	PrintToConsole(client, "[WML] Done refreshing map details");
-	
-	return Plugin_Handled;
-}
-
-/*
- * Displaying in-game menu to user.
- */
-public Action:Cmd_DisplayMapList(client, args)
-{
-	// NOTE: stored to g_MapMenu to make Back button work
-	if ((g_MapMenu = BuildCategoryMenu()) == INVALID_HANDLE)
-	{
-		PrintToConsole(client, "[WML] The map list and/or menu could not be generated!");
-		return Plugin_Handled;
-	}	
- 
-	DisplayMenu(g_MapMenu, client, MENU_TIME_FOREVER);
- 
-	return Plugin_Handled;
-}
-
 /*
  * Plugin unload event.
  */
@@ -404,16 +230,8 @@ public OnPluginEnd()
  */
 public OnAllPluginsLoaded()
 {
-	if (LibraryExists(PLUGIN_EMC))
-		g_IsMapChooserLoaded = IsEMCPresent();
-}
-
-/*
- * Checks if Extended MapChooser is present.
- */
-bool:IsEMCPresent()
-{
-	return true;
+	if (LibraryExists(PLUGIN_MC))
+		g_IsMapChooserLoaded = true;
 }
 
 /*
@@ -422,8 +240,8 @@ bool:IsEMCPresent()
 public OnLibraryAdded(const String:name[])
 {
 	// Check for presence of Extended MapChooser
-	if (StrEqual(name, PLUGIN_EMC))
-		g_IsMapChooserLoaded = IsEMCPresent();
+	if (StrEqual(name, PLUGIN_MC))
+		g_IsMapChooserLoaded = true;
 }
 
 /*
@@ -432,8 +250,8 @@ public OnLibraryAdded(const String:name[])
 public OnLibraryRemoved(const String:name[])
 {
 	// Check for presence of Extended MapChooser
-	if (StrEqual(name, PLUGIN_EMC))
-		g_IsMapChooserLoaded = IsEMCPresent();
+	if (StrEqual(name, PLUGIN_MC))
+		g_IsMapChooserLoaded = false;
 }
 
 /*
@@ -446,7 +264,7 @@ public OnMapStart()
 	g_IsChangingLevel = false;
 	
 	// Check game mode only on start to improve performance
-	if (GetMode() == ARMSRACE)
+	if (GetMode() == NextMapMode_Armsrace)
 		g_IsArmsrace = true;
 	else
 		g_IsArmsrace = false;
@@ -552,6 +370,342 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
 	}
 }
 
+/* ================================================================================
+ * CUSTOM CALLBACKS
+ * ================================================================================
+ */
+
+/*
+ * Gets fired if any player equips an item (used for Armsrace progression detection).
+ */
+public Action:Event_ItemEquip(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	// Only intercept if Armsrace mode detected
+	if (g_IsArmsrace)
+	{
+		decl String:weapon[MAX_ATTRIB_LEN];
+		GetEventString(event, "item", weapon, sizeof(weapon));
+		
+		decl String:setting[MAX_ATTRIB_LEN];
+		GetConVarString(g_cvarArmsraceWeapon, setting, sizeof(setting));
+		
+		if (StrEqual(weapon, setting, false) && !g_IsVoteInTriggered)
+		{
+			if (!g_IsMapChooserLoaded)
+				return Plugin_Continue;
+			
+			g_IsVoteInTriggered = true;
+			
+			// Get name of player who gained weapon
+			new userid = GetEventInt(event, "userid");
+			new user_index = 0;
+			if ((user_index = GetClientOfUserId(userid)) > 0)
+			{
+				decl String:player[MAX_NAME_LENGTH];
+				GetClientName(user_index, player, sizeof(player));
+				// Log info
+				LogMessage("Requesting vote because '%s' acquired weapon '%s'",
+					player, weapon);
+			}
+			
+			// Request vote
+			InitiateMapChooserVote(MapChange_MapEnd);
+		}
+	}
+	
+	return Plugin_Continue;
+}
+
+/*
+ * Gets fired on end of match.
+ */
+public Action:Event_GameEnd(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	LogMessage("Detected end of game, initializing map change...");
+
+	g_IsVoteInTriggered = false;
+	// Delay actual changelevel so players can see the leader board
+	new Float:delay = GetConVarFloat(FindConVar("mp_endmatch_votenextleveltime"));
+	new String:map[PLATFORM_MAX_PATH + 1];
+	GetNextMap(map, sizeof(map));
+	LogMessage("Changing map to %s", map);
+	// Trigger delayed changelevel2
+	ChangeLevel2(map, delay);
+	
+	return Plugin_Continue;
+}
+
+/*
+ * Command to add given amount of random maps to map nominations.
+ * Needs mapchooser to be available.
+ */
+public Action:Cmd_NominateRandom(client, args)
+{
+	// Is Extended MapChooser available
+	if (!g_IsMapChooserLoaded)
+	{
+		PrintToChat(client, ERROR_NO_MC);
+		return Plugin_Handled;
+	}
+	
+	// Is argument supplied
+	if (args < 1)
+	{
+		PrintToConsole(client, "No argument specified");
+		return Plugin_Handled;
+	}
+	
+	decl String:buffer[3];
+	new count = 0;
+	
+	GetCmdArgString(buffer, sizeof(buffer));
+	// Is argument valid/within range
+	if (0 >= (count = StringToInt(buffer)))
+	{
+		PrintToConsole(client, "Invalid argument specified");
+		return Plugin_Handled;
+	}
+	
+	decl String:mode[MAX_ATTRIB_LEN];
+	// Detect current mode to query only matching maps
+	switch (GetMode())
+	{
+		case NextMapMode_Casual:
+			mode = TAG_Classic;
+		case NextMapMode_Competitive:
+			mode = TAG_Hostage;
+		case NextMapMode_Armsrace:
+			mode = TAG_Armsrace;
+		case NextMapMode_Demolition:
+			mode = TAG_Demolition;
+		case NextMapMode_Deathmatch:
+			mode = TAG_Deathmatch;
+		default:
+		{
+			PrintToConsole(client, "Couldn't detect valid game mode");
+			return Plugin_Handled;
+		}
+	}
+	
+	decl String:query[MAX_QUERY_LEN];
+	Format(query, sizeof(query), " \
+		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
+		WHERE Tag = \"%s\" \
+		ORDER BY RANDOM() LIMIT %d;", mode, count);
+	
+	SQL_LockDatabase(g_dbiStorage);	
+	new Handle:h_Query = SQL_Query(g_dbiStorage, query);
+	
+	decl String:map[MAX_ID_LEN];
+	// Enumerate through all the results
+	while (SQL_FetchRow(h_Query))
+	{
+		SQL_FetchString(h_Query, 0, map, sizeof(map));
+		switch (NominateMap(map, true, client))
+		{
+			case Nominate_Added:
+				PrintToConsole(client, "Nominated map: %s", map);
+			case Nominate_InvalidMap:
+				PrintToConsole(client, "Couldn't nominate %s", map);
+			case Nominate_Replaced:
+				PrintToConsole(client, "%s replaced an existing nomination", map);
+			case Nominate_AlreadyInVote:
+				PrintToConsole(client, "%s is already nominated", map);
+		}
+	}
+	
+	SQL_UnlockDatabase(g_dbiStorage);
+	CloseHandle(h_Query);
+	
+	return Plugin_Handled;
+}
+
+/*
+ * Command to trigger next map vote.
+ * Needs mapchooser to be available.
+ */
+public Action:Cmd_VoteNow(client, args)
+{
+	if (!g_IsMapChooserLoaded)
+	{
+		LogError("Vote was requested but Extended MapChooser is not loaded");
+		PrintToChat(client, ERROR_NO_MC);
+		return Plugin_Handled;
+	}
+
+	LogMessage("Requested voting for next map");
+	InitiateMapChooserVote(MapChange_MapEnd);
+	
+	return Plugin_Handled;
+}
+
+/*
+ * Refreshing the map list requested.
+ */
+public Action:Cmd_ReloadMapList(client, args)
+{
+	PrintToConsole(client, "[WML] Refreshing map details...");
+	GenerateMapList();
+	PrintToConsole(client, "[WML] Done refreshing map details");
+	
+	return Plugin_Handled;
+}
+
+/*
+ * Displaying in-game menu to user.
+ */
+public Action:Cmd_DisplayMapList(client, args)
+{
+	// NOTE: stored to g_MapMenu to make Back button work
+	if ((g_MapMenu = BuildCategoryMenu()) == INVALID_HANDLE)
+	{
+		PrintToConsole(client, "[WML] The map list and/or menu could not be generated!");
+		return Plugin_Handled;
+	}	
+ 
+	DisplayMenu(g_MapMenu, client, MENU_TIME_FOREVER);
+ 
+	return Plugin_Handled;
+}
+
+/*
+ * Commands the server to change level.
+ */
+public Action:PerformMapChange(Handle:timer, Handle:pack)
+{
+	// Unpack map name
+	new String:map[PLATFORM_MAX_PATH + 1];
+	ResetPack(pack);
+	ReadPackString(pack, map, sizeof(map));
+	CloseHandle(pack);
+	
+	// We enter protected state
+	g_IsChangingLevel = true;
+	LogMessage("Changing map to %s", map);
+	// Fire!
+	ServerCommand("changelevel2 %s", map);
+}
+
+/*
+ * Gets called if user navigated through category menu.
+ */
+public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
+{
+	// An item was selected
+	if (action == MenuAction_Select)
+	{
+		// Stores map id
+		new String:info[MAX_ID_LEN];
+		new Handle:h_MapMenu = INVALID_HANDLE;
+		
+		// Set selected mode and build maps sub-menu
+		if (GetMenuItem(menu, param2, info, MAX_ATTRIB_LEN))
+		{
+			if (StrEqual(info, TAG_Classic, false))
+			{
+				g_SelectedMode = NextMapMode_Casual;
+			}
+			else if (StrEqual(info, TAG_Deathmatch, false))
+			{
+				g_SelectedMode = NextMapMode_Deathmatch;
+			}
+			else if (StrEqual(info, TAG_Demolition, false))
+			{
+				g_SelectedMode = NextMapMode_Demolition;
+			}
+			else if (StrEqual(info, TAG_Armsrace, false))
+			{
+				g_SelectedMode = NextMapMode_Armsrace;
+			}
+			else if (StrEqual(info, TAG_Hostage, false))
+			{
+				g_SelectedMode = NextMapMode_Competitive;
+			}
+			else if (StrEqual(info, TAG_Custom, false))
+			{
+				g_SelectedMode = NextMapMode_Custom;
+			}
+			
+			h_MapMenu = BuildMapMenu(info);
+			
+			DisplayMenu(h_MapMenu, param1, MENU_TIME_FOREVER);
+		}
+		else
+			PrintToChat(param1, "[WML] Somehow you managed to select a non existing category :(");
+	}
+	/*
+	else if (action == MenuAction_End)
+	{
+		CloseHandle(menu);
+	}
+	*/
+}
+
+/*
+ * Gets called if user navigated through maps menu.
+ */
+public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
+{
+	// User selected item
+	if (action == MenuAction_Select)
+	{
+		// Stores map id
+		new String:id[MAX_ID_LEN];
+ 
+		// Validate passed item
+		if (GetMenuItem(menu, param2, id, MAX_ID_LEN))
+		{
+			new String:map[PLATFORM_MAX_PATH + 1];
+			if (DB_GetMapPath(StringToInt(id), map))
+			{
+				// Send info to client
+				PrintToChatAll("[WML] Changing map to %s", map);
+		 
+				// Change the map
+				if (IsMapValid(map))
+				{
+					if (g_cvarChangeMode != INVALID_HANDLE)
+						if (GetConVarBool(g_cvarChangeMode))
+						{
+							// TODO: display name instead of index
+							LogMessage("Changing mode to: %d", g_SelectedMode);
+							ChangeMode(g_SelectedMode);
+						}
+					
+					ChangeLevel2(map);
+				}
+				else
+					LogError("Map '%s' unexpectedly couldn't be validated!", map);
+			}
+			else
+				LogError("Map '%s' wasn't found in the database!", id);
+		}
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		// On menu exit back, revert to category menu
+		if (param2 == MenuCancel_ExitBack)
+		{
+			DisplayMenu(g_MapMenu, param1, MENU_TIME_FOREVER);
+		}
+		else if (param2 == MenuCancel_Exit)
+		{
+			// In this case the user aborted map selection, we may free
+			CloseHandle(g_MapMenu);
+		}
+	}
+	else if (action == MenuAction_End)
+	{
+		// This sub-menu is regenerated every time so free up memory
+		CloseHandle(menu);
+	}
+}
+
+/* ================================================================================
+ * INTERNAL HELPERS
+ * ================================================================================
+ */
+
 /*
  * Get current game mode/type.
  */
@@ -561,15 +715,17 @@ GetMode()
 	new mode = GetConVarInt(g_cvarGameMode);
 	
 	if (type == GameType_Classic && mode == ClassicMode_Casual)
-		return CASUAL;
+		return NextMapMode_Casual;
 	if (type == GameType_Classic && mode == ClassicMode_Competitive)
-		return COMPETITIVE;
+		return NextMapMode_Competitive;
 	if (type == GameType_GunGame && mode == GunGameMode_ArmsRace)
-		return ARMSRACE;
+		return NextMapMode_Armsrace;
 	if (type == GameType_GunGame && mode == GunGameMode_Demolition)
-		return DEMOLITION;
+		return NextMapMode_Demolition;
 	if (type == GameType_GunGame && mode == GunGameMode_DeathMatch)
-		return DEATHMATCH;
+		return NextMapMode_Deathmatch;
+	if (type == GameType_Custom)
+		return NextMapMode_Custom;
 		
 	return -1;
 }
@@ -579,19 +735,22 @@ GetMode()
  */
 ChangeMode(mode)
 {
+	// NOTE: this avoids possible loops
 	g_IsChangingMode = true;
 	switch (mode)
 	{
-		case CASUAL:
+		case NextMapMode_Casual:
 			ChangeModeCasual();
-		case COMPETITIVE:
+		case NextMapMode_Competitive:
 			ChangeModeCompetitive();
-		case ARMSRACE:
+		case NextMapMode_Armsrace:
 			ChangeModeArmsrace();
-		case DEMOLITION:
+		case NextMapMode_Demolition:
 			ChangeModeDemolition();
-		case DEATHMATCH:
+		case NextMapMode_Deathmatch:
 			ChangeModeDeathmatch();
+		case NextMapMode_Custom:
+			ChangeModeCustom();
 	}
 	g_IsChangingMode = false;
 }
@@ -625,6 +784,12 @@ ChangeModeDeathmatch()
 {
 	SetConVarInt(g_cvarGameType, GameType_GunGame);
 	SetConVarInt(g_cvarGameMode, GunGameMode_DeathMatch);
+}
+
+ChangeModeCustom()
+{
+	SetConVarInt(g_cvarGameType, GameType_Custom);
+	SetConVarInt(g_cvarGameMode, ClassicMode_Casual);
 }
 
 /*
@@ -732,60 +897,152 @@ Handle:BuildCategoryMenu()
 }
 
 /*
- * Gets called if user navigated through category menu.
+ * Build simple list-style map chooser menu.
  */
-public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
+Handle:BuildMapMenu(String:category[])
 {
-	// An item was selected
-	if (action == MenuAction_Select)
-	{
-		// Stores map id
-		new String:info[MAX_ATTRIB_LEN];
-		new Handle:h_MapMenu = INVALID_HANDLE;
- 
-		// Validate passed item
-		new bool:found = GetMenuItem(menu, param2, info, MAX_ATTRIB_LEN);
+	// Create main menu handle
+	new Handle:menu = CreateMenu(Menu_ChangeMap);
+	new String:id[MAX_ID_LEN];
+	new String:tag[MAX_ATTRIB_LEN];
+	new Handle:h_Query = INVALID_HANDLE;
+	new String:query[MAX_QUERY_LEN];
+
+	Format(query, sizeof(query), " \
+		SELECT Id, Title FROM wml_workshop_maps \
+		WHERE Tag = \"%s\" \
+		ORDER BY Title COLLATE NOCASE ASC;",
+		category);
 		
-		// Set selected mode and build maps sub-menu
-		if (found)
+	SQL_LockDatabase(g_dbiStorage);
+	h_Query = SQL_Query(g_dbiStorage, query);
+	if (h_Query != INVALID_HANDLE)
+	{
+		while (SQL_FetchRow(h_Query))
 		{
-			if (StrEqual(info, TAG_Classic, false))
-			{
-				g_SelectedMode = CASUAL;
-			}
-			else if (StrEqual(info, TAG_Deathmatch, false))
-			{
-				g_SelectedMode = DEATHMATCH;
-			}
-			else if (StrEqual(info, TAG_Demolition, false))
-			{
-				g_SelectedMode = DEMOLITION;
-			}
-			else if (StrEqual(info, TAG_Armsrace, false))
-			{
-				g_SelectedMode = ARMSRACE;
-			}
-			else if (StrEqual(info, TAG_Hostage, false))
-			{
-				g_SelectedMode = COMPETITIVE;
-			}
-			else if (StrEqual(info, TAG_Custom, false))
-			{
-				g_SelectedMode = CASUAL;
-			}
-			
-			h_MapMenu = BuildMapMenu(info);
-			
-			DisplayMenu(h_MapMenu, param1, MENU_TIME_FOREVER);
+			SQL_FetchString(h_Query, 0, id, sizeof(id));
+			SQL_FetchString(h_Query, 1, tag, sizeof(tag));
+			AddMenuItem(menu, id, tag);
 		}
 	}
-	/*
-	else if (action == MenuAction_End)
-	{
-		CloseHandle(menu);
-	}
-	*/
+	SQL_UnlockDatabase(g_dbiStorage);
+	CloseHandle(h_Query);
+ 
+	// Finally, set the title
+	SetMenuTitle(menu, "Please select a map:");
+	SetMenuExitBackButton(menu, true);
+ 
+	return menu;
 }
+
+/*
+ * Perform map change.
+ */
+ChangeLevel2(const String:map[], const Float:delay=2.0)
+{
+	// Submit map name to timer callback
+	new Handle:h_MapName = CreateDataPack();
+	WritePackString(h_MapName, map);
+	// Delay for chat messages
+	CreateTimer(delay, PerformMapChange, h_MapName);
+}
+
+/*
+ * Trims away file extension and adds element to global map list.
+ */
+AddMapToList(String:map[])
+{
+	if (StrEqual(map[strlen(map) - 3], "bsp", false))
+	{
+		// Cuts off file extension
+		map[strlen(map) - 4] = '\0';
+		
+		// Extract workshop ID
+		decl String:id[MAX_ID_LEN];
+		MatchRegex(g_RegexId, map);
+		GetRegexSubString(g_RegexId, 1, id, MAX_ID_LEN);
+		
+		decl String:file[MAX_ATTRIB_LEN];
+		MatchRegex(g_RegexMap, map);
+		GetRegexSubString(g_RegexMap, 0, file, MAX_ID_LEN);
+		
+		// Add map skeleton to database
+		DB_AddNewMap(StringToInt(id), file);
+
+		// Fetch workshop item info
+		GetPublishedFileDetails(id);
+	}
+}
+
+/*
+ * Builds in-memory map list and user menu.
+ * */
+GenerateMapList()
+{
+	// Dive through file system
+	ReadFolder(WORKSHOP_BASE_DIR);
+}
+
+/*
+ * Recursively fetch content of given folder.
+ */
+ReadFolder(String:path[])
+{
+	new Handle:dirh = INVALID_HANDLE;
+	new String:buffer[PLATFORM_MAX_PATH + 1];
+	new String:tmp_path[PLATFORM_MAX_PATH + 1];
+
+	dirh = OpenDirectory(path);
+	if (dirh == INVALID_HANDLE)
+	{
+		LogError("[WML] Couldn't find the workshop folder, maybe you don't have downloaded maps yet?");
+		return;
+	}
+	
+	new FileType:type;
+	
+	// Enumerate directory elements
+	while(ReadDirEntry(dirh, buffer, sizeof(buffer), type))
+	{
+		new len = strlen(buffer);
+		
+		// Null-terminate if last char is newline
+		if (buffer[len-1] == '\n')
+			buffer[--len] = '\0';
+
+		// Remove spaces
+		TrimString(buffer);
+
+		// Skip empty, current and parent directory names
+		if (!StrEqual(buffer, "", false) && !StrEqual(buffer, ".", false) && !StrEqual(buffer, "..", false))
+		{
+			// Match files
+			if(type == FileType_File)
+			{
+				strcopy(tmp_path, PLATFORM_MAX_PATH, path[5]);
+				StrCat(tmp_path, PLATFORM_MAX_PATH, "/");
+				StrCat(tmp_path, PLATFORM_MAX_PATH, buffer);
+				// Adds map path to the end of map list
+				AddMapToList(tmp_path);
+			}
+			else // Dive deeper if it's a directory
+			{
+				strcopy(tmp_path, PLATFORM_MAX_PATH, path);
+				StrCat(tmp_path, PLATFORM_MAX_PATH, "/");
+				StrCat(tmp_path, PLATFORM_MAX_PATH, buffer);
+				ReadFolder(tmp_path);
+			}
+		}
+	}
+
+	// Clean-up
+	CloseHandle(dirh);
+}
+
+/* ================================================================================
+ * DATABASE WRAPPER FUNCTIONS
+ * ================================================================================
+ */
 
 /*
  * Create database tables if they don't exist.
@@ -925,223 +1182,3 @@ bool:DB_GetMapPath(id, String:path[])
 	return true;
 }
 
-/*
- * Build simple list-style map chooser menu.
- */
-Handle:BuildMapMenu(String:category[])
-{
-	// Create main menu handle
-	new Handle:menu = CreateMenu(Menu_ChangeMap);
-	new String:id[MAX_ID_LEN];
-	new String:tag[MAX_ATTRIB_LEN];
-	new Handle:h_Query = INVALID_HANDLE;
-	new String:query[MAX_QUERY_LEN];
-
-	Format(query, sizeof(query), " \
-		SELECT Id, Title FROM wml_workshop_maps \
-		WHERE Tag = \"%s\" \
-		ORDER BY Title COLLATE NOCASE ASC;",
-		category);
-		
-	SQL_LockDatabase(g_dbiStorage);
-	h_Query = SQL_Query(g_dbiStorage, query);
-	if (h_Query != INVALID_HANDLE)
-	{
-		while (SQL_FetchRow(h_Query))
-		{
-			SQL_FetchString(h_Query, 0, id, sizeof(id));
-			SQL_FetchString(h_Query, 1, tag, sizeof(tag));
-			AddMenuItem(menu, id, tag);
-		}
-	}
-	SQL_UnlockDatabase(g_dbiStorage);
-	CloseHandle(h_Query);
- 
-	// Finally, set the title
-	SetMenuTitle(menu, "Please select a map:");
-	SetMenuExitBackButton(menu, true);
- 
-	return menu;
-}
-
-/*
- * Gets called if user navigated through maps menu.
- */
-public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
-{
-	// User selected item
-	if (action == MenuAction_Select)
-	{
-		// Stores map id
-		new String:id[MAX_ID_LEN];
- 
-		// Validate passed item
-		if (GetMenuItem(menu, param2, id, MAX_ID_LEN))
-		{
-			new String:map[PLATFORM_MAX_PATH + 1];
-			if (DB_GetMapPath(StringToInt(id), map))
-			{
-				// Send info to client
-				PrintToChatAll("[WML] Changing map to %s", map);
-		 
-				// Change the map
-				if (IsMapValid(map))
-				{
-					if (g_cvarChangeMode != INVALID_HANDLE)
-						if (GetConVarBool(g_cvarChangeMode))
-						{
-							// TODO: display name instead of index
-							LogMessage("Changing mode to: %d", g_SelectedMode);
-							ChangeMode(g_SelectedMode);
-						}
-					
-					ChangeLevel2(map);
-				}
-				else
-					LogError("Map '%s' unexpectedly couldn't be validated!", map);
-			}
-			else
-				LogError("Map '%s' wasn't found in the database!", id);
-		}
-	}
-	else if (action == MenuAction_Cancel)
-	{
-		// On menu exit back, revert to category menu
-		if (param2 == MenuCancel_ExitBack)
-		{
-			DisplayMenu(g_MapMenu, param1, MENU_TIME_FOREVER);
-		}
-		else if (param2 == MenuCancel_Exit)
-		{
-			// In this case the user aborted map selection, we may free
-			CloseHandle(g_MapMenu);
-		}
-	}
-	else if (action == MenuAction_End)
-	{
-		// This sub-menu is regenerated every time so free up memory
-		CloseHandle(menu);
-	}
-}
-
-/*
- * Perform map change.
- */
-ChangeLevel2(const String:map[], const Float:delay=2.0)
-{
-	// Submit map name to timer callback
-	new Handle:h_MapName = CreateDataPack();
-	WritePackString(h_MapName, map);
-	// Delay for chat messages
-	CreateTimer(delay, PerformMapChange, h_MapName);
-}
-
-/*
- * Commands the server to change level.
- */
-public Action:PerformMapChange(Handle:timer, Handle:pack)
-{
-	// Unpack map name
-	new String:map[PLATFORM_MAX_PATH + 1];
-	ResetPack(pack);
-	ReadPackString(pack, map, sizeof(map));
-	CloseHandle(pack);
-	
-	// We enter protected state
-	g_IsChangingLevel = true;
-	LogMessage("Changing map to %s", map);
-	// Fire!
-	ServerCommand("changelevel2 %s", map);
-}
-
-/*
- * Trims away file extension and adds element to global map list.
- */
-AddMapToList(String:map[])
-{
-	if (StrEqual(map[strlen(map) - 3], "bsp", false))
-	{
-		// Cuts off file extension
-		map[strlen(map) - 4] = '\0';
-		
-		// Extract workshop ID
-		decl String:id[MAX_ID_LEN];
-		MatchRegex(g_RegexId, map);
-		GetRegexSubString(g_RegexId, 1, id, MAX_ID_LEN);
-		
-		decl String:file[MAX_ATTRIB_LEN];
-		MatchRegex(g_RegexMap, map);
-		GetRegexSubString(g_RegexMap, 0, file, MAX_ID_LEN);
-		
-		// Add map skeleton to database
-		DB_AddNewMap(StringToInt(id), file);
-
-		// Fetch workshop item info
-		GetPublishedFileDetails(id);
-	}
-}
-
-/*
- * Builds in-memory map list and user menu.
- * */
-GenerateMapList()
-{
-	// Dive through file system
-	ReadFolder(WORKSHOP_BASE_DIR);
-}
-
-/*
- * Recursively fetch content of given folder.
- */
-ReadFolder(String:path[])
-{
-	new Handle:dirh = INVALID_HANDLE;
-	new String:buffer[PLATFORM_MAX_PATH + 1];
-	new String:tmp_path[PLATFORM_MAX_PATH + 1];
-
-	dirh = OpenDirectory(path);
-	if (dirh == INVALID_HANDLE)
-	{
-		LogError("[WML] Couldn't find the workshop folder, maybe you don't have downloaded maps yet?");
-		return;
-	}
-	
-	new FileType:type;
-	
-	// Enumerate directory elements
-	while(ReadDirEntry(dirh, buffer, sizeof(buffer), type))
-	{
-		new len = strlen(buffer);
-		
-		// Null-terminate if last char is newline
-		if (buffer[len-1] == '\n')
-			buffer[--len] = '\0';
-
-		// Remove spaces
-		TrimString(buffer);
-
-		// Skip empty, current and parent directory names
-		if (!StrEqual(buffer, "", false) && !StrEqual(buffer, ".", false) && !StrEqual(buffer, "..", false))
-		{
-			// Match files
-			if(type == FileType_File)
-			{
-				strcopy(tmp_path, PLATFORM_MAX_PATH, path[5]);
-				StrCat(tmp_path, PLATFORM_MAX_PATH, "/");
-				StrCat(tmp_path, PLATFORM_MAX_PATH, buffer);
-				// Adds map path to the end of map list
-				AddMapToList(tmp_path);
-			}
-			else // Dive deeper if it's a directory
-			{
-				strcopy(tmp_path, PLATFORM_MAX_PATH, path);
-				StrCat(tmp_path, PLATFORM_MAX_PATH, "/");
-				StrCat(tmp_path, PLATFORM_MAX_PATH, buffer);
-				ReadFolder(tmp_path);
-			}
-		}
-	}
-
-	// Clean-up
-	CloseHandle(dirh);
-}
