@@ -16,7 +16,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser>
 
-#define PLUGIN_VERSION 		"0.4.26"
+#define PLUGIN_VERSION 		"0.4.27"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -137,18 +137,18 @@ public OnPluginStart()
 		"Automatically adjust game mode/type to map category <1 = Enabled/Default, 0 = Disabled>", 
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	if (g_cvarChangeMode == INVALID_HANDLE)
-		LogError("[WML] Couldn't register 'sm_wml_changemode'!");
+		LogError("Couldn't register 'sm_wml_changemode'!");
 	// Refresh map details on plugin load
 	g_cvarAutoLoad = CreateConVar("sm_wml_autoreload", "1",
 		"Automatically refresh map info on plugin (re)load <1 = Enabled/Default, 0 = Disabled>",
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	if (g_cvarAutoLoad == INVALID_HANDLE)
-		LogError("[WML] Couldn't register 'sm_wml_autoreload'!");
+		LogError("Couldn't register 'sm_wml_autoreload'!");
 	// Enable special handling of Armsrace sessions
 	g_cvarArmsraceWeapon = CreateConVar("sm_wml_armsrace_weapon", "awp",
 		"Sets weapon on which the vote will be started on Armsrace <awp = Default>");
 	if (g_cvarArmsraceWeapon == INVALID_HANDLE)
-		LogError("[WML] Couldn't register 'sm_wml_armsrace_weapon'!");
+		LogError("Couldn't register 'sm_wml_armsrace_weapon'!");
 	
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", Cmd_DisplayMapList, ADMFLAG_CHANGEMAP, 
@@ -480,6 +480,8 @@ public Action:Cmd_NominateRandom(client, args)
 			mode = TAG_Demolition;
 		case NextMapMode_Deathmatch:
 			mode = TAG_Deathmatch;
+		case NextMapMode_Custom:
+			mode = TAG_Custom;
 		default:
 		{
 			PrintToConsole(client, "Couldn't detect valid game mode");
@@ -528,7 +530,7 @@ public Action:Cmd_VoteNow(client, args)
 {
 	if (!g_IsMapChooserLoaded)
 	{
-		LogError("Vote was requested but Extended MapChooser is not loaded");
+		LogError("Vote was requested but MapChooser is not loaded");
 		PrintToChat(client, ERROR_NO_MC);
 		return Plugin_Handled;
 	}
