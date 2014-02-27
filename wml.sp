@@ -17,7 +17,11 @@
 #include <mapchooser>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #define PLUGIN_VERSION 		"0.3.1"
+=======
+#define PLUGIN_VERSION 		"0.4.27"
+>>>>>>> dev
 =======
 #define PLUGIN_VERSION 		"0.4.27"
 >>>>>>> dev
