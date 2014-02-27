@@ -16,15 +16,7 @@
 #undef REQUIRE_PLUGIN
 #include <mapchooser>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-#define PLUGIN_VERSION 		"0.3.1"
-=======
 #define PLUGIN_VERSION 		"0.4.27"
->>>>>>> dev
-=======
-#define PLUGIN_VERSION 		"0.4.27"
->>>>>>> dev
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -893,29 +885,6 @@ BrowseKeyValues(Handle:kv, const String:id[])
  */
 Handle:BuildCategoryMenu()
 {
-<<<<<<< HEAD
-	new Handle:h_Query = INVALID_HANDLE;
-	new String:query[MAX_QUERY_LEN];
-	
-	Format(query, sizeof(query), " \
-		SELECT 'workshop/' || Id || '/' || Map \
-		FROM wml_workshop_maps WHERE Id = %d;", id);
-		
-	SQL_LockDatabase(g_dbiStorage);
-	h_Query = SQL_Query(g_dbiStorage, query);
-	if (h_Query == INVALID_HANDLE)
-	{
-		new String:error[MAX_ERROR_LEN];
-		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		PrintToServer("Failed setting map tag (error: %s)", error);
-	}
-	SQL_UnlockDatabase(g_dbiStorage);
-			
-	if (!SQL_FetchRow(h_Query))
-		return false;
-	
-	SQL_FetchString(h_Query, 0, path, PLATFORM_MAX_PATH + 1);
-=======
 	// Create main menu handle
 	new Handle:menu = CreateMenu(Menu_SelectedCategory);
 	SetMenuTitle(menu, "Please select map category:");
@@ -925,7 +894,6 @@ Handle:BuildCategoryMenu()
 	AddMenuItem(menu, TAG_Armsrace, TAG_Armsrace);
 	AddMenuItem(menu, TAG_Hostage, TAG_Hostage);
 	AddMenuItem(menu, TAG_Custom, TAG_Custom);
->>>>>>> dev
 	
 	return menu;
 }
