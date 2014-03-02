@@ -22,7 +22,7 @@ stock GetPublishedFileDetails(const String:id[])
 	}
 	else if (CURL_AVAILABLE())
 	{
-		cURL_GetPage(request, data, WAPI_USERAGENT, pack);
+		cURL_GetPage(OnCurlComplete, request, data, WAPI_USERAGENT, pack);
 		return;
 	}
 	else

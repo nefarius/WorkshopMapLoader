@@ -9,7 +9,7 @@ new CURL_Default_opt[][2] = {
 
 #define CURL_DEFAULT_OPT(%1) curl_easy_setopt_int_array(%1, CURL_Default_opt, sizeof(CURL_Default_opt))
 
-stock cURL_GetPage(const String:URL[], const String:POST[] = "", const String:useragent[] = "", any:data = INVALID_HANDLE)
+stock cURL_GetPage(CURL_OnComplete:OnCurlComplete, const String:URL[], const String:POST[] = "", const String:useragent[] = "", any:data = INVALID_HANDLE)
 {
 	new Handle:curl = curl_easy_init();
 	if(curl != INVALID_HANDLE)
@@ -29,42 +29,56 @@ stock cURL_GetPage(const String:URL[], const String:POST[] = "", const String:us
 			return;
 		}
 		
+		new Handle:hDLPack = CreateDataPack();
+		WritePackString(hDLPack, id);
+		WritePackCell(hDLPack, file);
+		
 		CURL_DEFAULT_OPT(curl);
 		curl_easy_setopt_string(curl, CURLOPT_URL, URL);
 		curl_easy_setopt_string(curl, CURLOPT_POSTFIELDS, POST);
 		curl_easy_setopt_string(curl, CURLOPT_USERAGENT, useragent);
 		curl_easy_setopt_handle(curl, CURLOPT_WRITEDATA, file);
-		
-		new CURLcode:code;
-		if((code = curl_easy_perform(curl)) != CURLE_OK)
-		{
-			new String:error[MAX_ERROR_LEN];
-			curl_easy_strerror(code, error, sizeof(error));
-			LogError("Getting data for ID %s failed: %s", id, error);
-			CloseHandle(curl);
-			CloseHandle(file);
-			return;
-		}
-		
-		CloseHandle(file);
-		LogMessage("Successfully received file details for ID %s", id);
-		
-		// Begin parse response
-		new Handle:kv = CreateKeyValues("response");
-		if(kv != INVALID_HANDLE)
-		{
-			if (FileToKeyValues(kv, path))
-			{
-				BrowseKeyValues(kv, id);
-				CloseHandle(kv);
-				// Once the map has been tagged, it's origin may be purged
-				DB_RemoveUntagged(StringToInt(id));
-			}
-			else
-				LogError("Couldn't open KeyValues for file ID %s", id);
-		}
-		
-		// Delete (temporary) Kv file
-		DeleteFile(path);
+		curl_easy_perform_thread(curl, OnCurlComplete, hDLPack);
 	}
+}
+
+public OnCurlComplete(Handle:hndl, CURLcode:code , any:data)
+{
+	// Get associated ID
+	decl String:id[MAX_ID_LEN];
+	ResetPack(data);
+	// Get ID
+	ReadPackString(data, id, sizeof(id));
+	// Close file
+	CloseHandle(Handle:ReadPackCell(data));
+	
+	if(hndl != INVALID_HANDLE && code != CURLE_OK)
+	{
+		new String:error[MAX_ERROR_LEN];
+		curl_easy_strerror(code, error, sizeof(error));
+		CloseHandle(hndl);
+		return;
+	}
+	
+	LogMessage("Successfully received file details for ID %s", id);
+	decl String:path[PLATFORM_MAX_PATH + 1];
+	BuildPath(Path_SM, path, sizeof(path), "%s/%s.txt", WML_TMP_DIR, id);
+	
+	// Begin parse response
+	new Handle:kv = CreateKeyValues("response");
+	if(kv != INVALID_HANDLE)
+	{
+		if (FileToKeyValues(kv, path))
+		{
+			BrowseKeyValues(kv, id);
+			CloseHandle(kv);
+			// Once the map has been tagged, it's origin may be purged
+			DB_RemoveUntagged(StringToInt(id));
+		}
+		else
+			LogError("Couldn't open KeyValues for file ID %s", id);
+	}
+	
+	// Delete (temporary) Kv file
+	DeleteFile(path);
 }
