@@ -12,7 +12,10 @@
 #pragma semicolon 1
 #include <sourcemod>
 #include <regex>
+#undef REQUIRE_EXTENSIONS
 #include <system2>
+#include <cURL>
+#define REQUIRE_EXTENSIONS
 #undef REQUIRE_PLUGIN
 #include <mapchooser>
 #include <updater>
@@ -164,6 +167,12 @@ public OnPluginStart()
 	HookEvent("cs_win_panel_match", Event_GameEnd, EventHookMode_PostNoCopy);
 	// Intercept item equipment for mapchooser
 	HookEvent("item_equip", Event_ItemEquip, EventHookMode_Post);
+	
+	// Create temporary directory
+	decl String:path[PLATFORM_MAX_PATH + 1];
+	BuildPath(Path_SM, path, sizeof(path), "%s", WML_TMP_DIR);
+	if (!DirExists(path))
+		CreateDirectory(path, 511);
 	
 	// Load/Store Cvars
 	AutoExecConfig(true, PLUGIN_SHORT_NAME);

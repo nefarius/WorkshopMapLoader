@@ -1,7 +1,7 @@
 /*
  * API Call to fetch Workshop ID details.
  */
-GetPublishedFileDetails(const String:id[])
+stock GetPublishedFileDetails(const String:id[])
 {
 	// Build URL
 	decl String:request[MAX_URL_LEN];
@@ -11,11 +11,17 @@ GetPublishedFileDetails(const String:id[])
 	decl String:data[MAX_POST_LEN];
 	Format(data, MAX_POST_LEN, "itemcount=1&publishedfileids%%5B0%%5D=%s&format=vdf", id);
 	
+	// Attach ID to keep track of response
+	new Handle:pack = CreateDataPack();
+	WritePackString(pack, id);
+	
 	if (SYSTEM2_AVAILABLE())
 	{
-		// Attach ID to keep track of response
-		new Handle:pack = CreateDataPack();
-		WritePackString(pack, id);
 		System2_GetPage(OnGetPageComplete, request, data, WAPI_USERAGENT, pack);
 	}
+	else if (CURL_AVAILABLE())
+	{
+		cURL_GetPage(OnCurlComplete, request, data, WAPI_USERAGENT, pack);
+	}
 }
+

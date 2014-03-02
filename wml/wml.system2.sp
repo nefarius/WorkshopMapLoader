@@ -15,12 +15,6 @@ public OnGetPageComplete(const String:output[], const size, CMDReturn:status, an
 		return;
 	}
 	
-	// Create temporary directory
-	decl String:path[PLATFORM_MAX_PATH + 1];
-	BuildPath(Path_SM, path, sizeof(path), "%s", WML_TMP_DIR);
-	if (!DirExists(path))
-		CreateDirectory(path, 511);
-	
 	// Create Kv file
 	BuildPath(Path_SM, path, sizeof(path), "%s/%s.txt", WML_TMP_DIR, id);
 	new Handle:file = OpenFile(path, "a+t");
