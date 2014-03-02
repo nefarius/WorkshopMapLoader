@@ -23,5 +23,9 @@ stock GetPublishedFileDetails(const String:id[])
 	{
 		cURL_GetPage(OnCurlComplete, request, data, WAPI_USERAGENT, pack);
 	}
+	else
+	{
+		LogError("Couldn't connect to Steam API, do you have System2 or cURL installed?");
+	}
 }
 
