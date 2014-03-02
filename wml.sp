@@ -15,8 +15,9 @@
 #include <system2>
 #undef REQUIRE_PLUGIN
 #include <mapchooser>
+#define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION 		"0.4.27"
+#define PLUGIN_VERSION 		"0.4.28"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -24,10 +25,14 @@
 
 // Plugin Limits
 #define MAX_ID_LEN			64
-#define MAX_URL_LEN			128
 #define MAX_ATTRIB_LEN		32
 #define MAX_QUERY_LEN		255
 #define MAX_ERROR_LEN		255
+
+// Web API
+#define MAX_URL_LEN			128
+#define MAX_POST_LEN		MAX_URL_LEN
+#define WAPI_USERAGENT		"Valve/Steam HTTP Client 1.0"
 
 // Workshop tag names
 #define TAG_Classic			"Classic"
@@ -36,11 +41,6 @@
 #define TAG_Armsrace		"Armsrace"
 #define TAG_Hostage			"Hostage"
 #define TAG_Custom			"Custom"
-
-// Web API
-#define MAX_POST_LEN		MAX_URL_LEN
-#define WAPI_USERAGENT		"Valve/Steam HTTP Client 1.0"
-#define WAPI_GFDETAILS		"http://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
 
 // Map Chooser
 #define PLUGIN_MC			"mapchooser"
@@ -69,38 +69,11 @@ new Handle:g_MapMenu = INVALID_HANDLE;
 new Handle:g_RegexId = INVALID_HANDLE;
 new Handle:g_RegexMap = INVALID_HANDLE;
 
-// GS:GO Game Types
-enum
-{
-	GameType_Classic		= 0,
-	GameType_GunGame		= 1,
-	GameType_Training		= 2,
-	GameType_Custom			= 3,
-}
-// GS:GO Classic Types
-enum
-{
-	ClassicMode_Casual		= 0,
-	ClassicMode_Competitive	= 1,
-}
-// GS:GO Arsenal Modes
-enum
-{
-	GunGameMode_ArmsRace	= 0,
-	GunGameMode_Demolition	= 1,
-	GunGameMode_DeathMatch	= 2,
-}
-
-// CS:GO Next Map Mode
-enum
-{
-	NextMapMode_Casual		= 0,
-	NextMapMode_Competitive	= 1,
-	NextMapMode_Armsrace	= 2,
-	NextMapMode_Demolition	= 3,
-	NextMapMode_Deathmatch	= 4,
-	NextMapMode_Custom		= 5,
-}
+#include "wml/wml.database.sp"
+#include "wml/wml.gamemode.sp"
+#include "wml/wml.steamapi.sp"
+#include "wml/wml.adminmenu.sp"
+#include "wml/wml.filesystem.sp"
 
 
 public Plugin:myinfo =
@@ -589,237 +562,6 @@ public Action:PerformMapChange(Handle:timer, Handle:pack)
 }
 
 /*
- * Gets called if user navigated through category menu.
- */
-public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
-{
-	// An item was selected
-	if (action == MenuAction_Select)
-	{
-		// Stores map id
-		new String:info[MAX_ID_LEN];
-		new Handle:h_MapMenu = INVALID_HANDLE;
-		
-		// Set selected mode and build maps sub-menu
-		if (GetMenuItem(menu, param2, info, MAX_ATTRIB_LEN))
-		{
-			if (StrEqual(info, TAG_Classic, false))
-			{
-				g_SelectedMode = NextMapMode_Casual;
-			}
-			else if (StrEqual(info, TAG_Deathmatch, false))
-			{
-				g_SelectedMode = NextMapMode_Deathmatch;
-			}
-			else if (StrEqual(info, TAG_Demolition, false))
-			{
-				g_SelectedMode = NextMapMode_Demolition;
-			}
-			else if (StrEqual(info, TAG_Armsrace, false))
-			{
-				g_SelectedMode = NextMapMode_Armsrace;
-			}
-			else if (StrEqual(info, TAG_Hostage, false))
-			{
-				g_SelectedMode = NextMapMode_Competitive;
-			}
-			else if (StrEqual(info, TAG_Custom, false))
-			{
-				g_SelectedMode = NextMapMode_Custom;
-			}
-			
-			h_MapMenu = BuildMapMenu(info);
-			
-			DisplayMenu(h_MapMenu, param1, MENU_TIME_FOREVER);
-		}
-		else
-			PrintToChat(param1, "[WML] Somehow you managed to select a non existing category :(");
-	}
-	/*
-	else if (action == MenuAction_End)
-	{
-		CloseHandle(menu);
-	}
-	*/
-}
-
-/*
- * Gets called if user navigated through maps menu.
- */
-public Menu_ChangeMap(Handle:menu, MenuAction:action, param1, param2)
-{
-	// User selected item
-	if (action == MenuAction_Select)
-	{
-		// Stores map id
-		new String:id[MAX_ID_LEN];
- 
-		// Validate passed item
-		if (GetMenuItem(menu, param2, id, MAX_ID_LEN))
-		{
-			new String:map[PLATFORM_MAX_PATH + 1];
-			if (DB_GetMapPath(StringToInt(id), map))
-			{
-				// Send info to client
-				PrintToChatAll("[WML] Changing map to %s", map);
-		 
-				// Change the map
-				if (IsMapValid(map))
-				{
-					if (g_cvarChangeMode != INVALID_HANDLE)
-						if (GetConVarBool(g_cvarChangeMode))
-						{
-							// TODO: display name instead of index
-							LogMessage("Changing mode to: %d", g_SelectedMode);
-							ChangeMode(g_SelectedMode);
-						}
-					
-					ChangeLevel2(map);
-				}
-				else
-					LogError("Map '%s' unexpectedly couldn't be validated!", map);
-			}
-			else
-				LogError("Map '%s' wasn't found in the database!", id);
-		}
-	}
-	else if (action == MenuAction_Cancel)
-	{
-		// On menu exit back, revert to category menu
-		if (param2 == MenuCancel_ExitBack)
-		{
-			DisplayMenu(g_MapMenu, param1, MENU_TIME_FOREVER);
-		}
-		else if (param2 == MenuCancel_Exit)
-		{
-			// In this case the user aborted map selection, we may free
-			CloseHandle(g_MapMenu);
-		}
-	}
-	else if (action == MenuAction_End)
-	{
-		// This sub-menu is regenerated every time so free up memory
-		CloseHandle(menu);
-	}
-}
-
-/* ================================================================================
- * INTERNAL HELPERS
- * ================================================================================
- */
-
-/*
- * Get current game mode/type.
- */
-GetMode()
-{
-	new type = GetConVarInt(g_cvarGameType);
-	new mode = GetConVarInt(g_cvarGameMode);
-	
-	if (type == GameType_Classic && mode == ClassicMode_Casual)
-		return NextMapMode_Casual;
-	if (type == GameType_Classic && mode == ClassicMode_Competitive)
-		return NextMapMode_Competitive;
-	if (type == GameType_GunGame && mode == GunGameMode_ArmsRace)
-		return NextMapMode_Armsrace;
-	if (type == GameType_GunGame && mode == GunGameMode_Demolition)
-		return NextMapMode_Demolition;
-	if (type == GameType_GunGame && mode == GunGameMode_DeathMatch)
-		return NextMapMode_Deathmatch;
-	if (type == GameType_Custom)
-		return NextMapMode_Custom;
-		
-	return -1;
-}
-
-/*
- * Changes game type and game mode to set value
- */
-ChangeMode(mode)
-{
-	// NOTE: this avoids possible loops
-	g_IsChangingMode = true;
-	switch (mode)
-	{
-		case NextMapMode_Casual:
-			ChangeModeCasual();
-		case NextMapMode_Competitive:
-			ChangeModeCompetitive();
-		case NextMapMode_Armsrace:
-			ChangeModeArmsrace();
-		case NextMapMode_Demolition:
-			ChangeModeDemolition();
-		case NextMapMode_Deathmatch:
-			ChangeModeDeathmatch();
-		case NextMapMode_Custom:
-			ChangeModeCustom();
-	}
-	g_IsChangingMode = false;
-}
-
-// https://forums.alliedmods.net/showthread.php?p=1891305
-ChangeModeCasual()
-{
-	SetConVarInt(g_cvarGameType, GameType_Classic);
-	SetConVarInt(g_cvarGameMode, ClassicMode_Casual);
-}
-
-ChangeModeCompetitive()
-{
-	SetConVarInt(g_cvarGameType, GameType_Classic);
-	SetConVarInt(g_cvarGameMode, ClassicMode_Competitive);
-}
-
-ChangeModeArmsrace()
-{
-	SetConVarInt(g_cvarGameType, GameType_GunGame);
-	SetConVarInt(g_cvarGameMode, GunGameMode_ArmsRace);
-}
-
-ChangeModeDemolition()
-{
-	SetConVarInt(g_cvarGameType, GameType_GunGame);
-	SetConVarInt(g_cvarGameMode, GunGameMode_Demolition);
-}
-
-ChangeModeDeathmatch()
-{
-	SetConVarInt(g_cvarGameType, GameType_GunGame);
-	SetConVarInt(g_cvarGameMode, GunGameMode_DeathMatch);
-}
-
-ChangeModeCustom()
-{
-	SetConVarInt(g_cvarGameType, GameType_Custom);
-	SetConVarInt(g_cvarGameMode, ClassicMode_Casual);
-}
-
-/*
- * API Call to fetch Workshop ID details.
- */
-GetPublishedFileDetails(const String:id[])
-{
-	// Build URL
-	decl String:request[MAX_URL_LEN];
-	//Format(request, MAX_URL_LEN, "%s?key=%s", WAPI_GFDETAILS, g_SteamAPIKey);
-	Format(request, MAX_URL_LEN, "%s", WAPI_GFDETAILS);
-	// Build POST
-	decl String:data[MAX_POST_LEN];
-	Format(data, MAX_POST_LEN, "itemcount=1&publishedfileids%%5B0%%5D=%s&format=vdf", id);
-	
-#if defined WML_DEBUG
-	PrintToServer("Requested: %s, length: %d", request, strlen(request));
-	PrintToServer("POST String: %s", data);
-	PrintToServer("User Agent: %s", WAPI_USERAGENT);
-#endif
-	
-	// Attach ID to keep track of response
-	new Handle:pack = CreateDataPack();
-	WritePackString(pack, id);
-	System2_GetPage(OnGetPage, request, data, WAPI_USERAGENT, pack);
-}
-
-/*
  * Dives through local stored map info file.
  */
 BrowseKeyValues(Handle:kv, const String:id[])
@@ -881,63 +623,6 @@ BrowseKeyValues(Handle:kv, const String:id[])
 }
 
 /*
- * Builds map category top-level menu.
- */
-Handle:BuildCategoryMenu()
-{
-	// Create main menu handle
-	new Handle:menu = CreateMenu(Menu_SelectedCategory);
-	SetMenuTitle(menu, "Please select map category:");
-	AddMenuItem(menu, TAG_Classic, TAG_Classic);
-	AddMenuItem(menu, TAG_Deathmatch, TAG_Deathmatch);
-	AddMenuItem(menu, TAG_Demolition, TAG_Demolition);
-	AddMenuItem(menu, TAG_Armsrace, TAG_Armsrace);
-	AddMenuItem(menu, TAG_Hostage, TAG_Hostage);
-	AddMenuItem(menu, TAG_Custom, TAG_Custom);
-	
-	return menu;
-}
-
-/*
- * Build simple list-style map chooser menu.
- */
-Handle:BuildMapMenu(String:category[])
-{
-	// Create main menu handle
-	new Handle:menu = CreateMenu(Menu_ChangeMap);
-	new String:id[MAX_ID_LEN];
-	new String:tag[MAX_ATTRIB_LEN];
-	new Handle:h_Query = INVALID_HANDLE;
-	new String:query[MAX_QUERY_LEN];
-
-	Format(query, sizeof(query), " \
-		SELECT Id, Title FROM wml_workshop_maps \
-		WHERE Tag = \"%s\" \
-		ORDER BY Title COLLATE NOCASE ASC;",
-		category);
-		
-	SQL_LockDatabase(g_dbiStorage);
-	h_Query = SQL_Query(g_dbiStorage, query);
-	if (h_Query != INVALID_HANDLE)
-	{
-		while (SQL_FetchRow(h_Query))
-		{
-			SQL_FetchString(h_Query, 0, id, sizeof(id));
-			SQL_FetchString(h_Query, 1, tag, sizeof(tag));
-			AddMenuItem(menu, id, tag);
-		}
-	}
-	SQL_UnlockDatabase(g_dbiStorage);
-	CloseHandle(h_Query);
- 
-	// Finally, set the title
-	SetMenuTitle(menu, "Please select a map:");
-	SetMenuExitBackButton(menu, true);
- 
-	return menu;
-}
-
-/*
  * Perform map change.
  */
 ChangeLevel2(const String:map[], const Float:delay=2.0)
@@ -983,204 +668,5 @@ GenerateMapList()
 {
 	// Dive through file system
 	ReadFolder(WORKSHOP_BASE_DIR);
-}
-
-/*
- * Recursively fetch content of given folder.
- */
-ReadFolder(String:path[])
-{
-	new Handle:dirh = INVALID_HANDLE;
-	new String:buffer[PLATFORM_MAX_PATH + 1];
-	new String:tmp_path[PLATFORM_MAX_PATH + 1];
-
-	dirh = OpenDirectory(path);
-	if (dirh == INVALID_HANDLE)
-	{
-		LogError("[WML] Couldn't find the workshop folder, maybe you don't have downloaded maps yet?");
-		return;
-	}
-	
-	new FileType:type;
-	
-	// Enumerate directory elements
-	while(ReadDirEntry(dirh, buffer, sizeof(buffer), type))
-	{
-		new len = strlen(buffer);
-		
-		// Null-terminate if last char is newline
-		if (buffer[len-1] == '\n')
-			buffer[--len] = '\0';
-
-		// Remove spaces
-		TrimString(buffer);
-
-		// Skip empty, current and parent directory names
-		if (!StrEqual(buffer, "", false) && !StrEqual(buffer, ".", false) && !StrEqual(buffer, "..", false))
-		{
-			// Match files
-			if(type == FileType_File)
-			{
-				strcopy(tmp_path, PLATFORM_MAX_PATH, path[5]);
-				StrCat(tmp_path, PLATFORM_MAX_PATH, "/");
-				StrCat(tmp_path, PLATFORM_MAX_PATH, buffer);
-				// Adds map path to the end of map list
-				AddMapToList(tmp_path);
-			}
-			else // Dive deeper if it's a directory
-			{
-				strcopy(tmp_path, PLATFORM_MAX_PATH, path);
-				StrCat(tmp_path, PLATFORM_MAX_PATH, "/");
-				StrCat(tmp_path, PLATFORM_MAX_PATH, buffer);
-				ReadFolder(tmp_path);
-			}
-		}
-	}
-
-	// Clean-up
-	CloseHandle(dirh);
-}
-
-/* ================================================================================
- * DATABASE WRAPPER FUNCTIONS
- * ================================================================================
- */
-
-/*
- * Create database tables if they don't exist.
- */
-DB_CreateTables()
-{
-	if (g_dbiStorage == INVALID_HANDLE)
-		return;
-
-	new String:error[MAX_ERROR_LEN];
-
-	if (!SQL_FastQuery(g_dbiStorage, "\
-		CREATE TABLE IF NOT EXISTS wml_workshop_maps ( \
-			Id INTEGER NOT NULL, \
-			Tag TEXT NOT NULL, \
-			Map TEXT NOT NULL, \
-			Title TEXT NOT NULL, \
-			UNIQUE(Id, Tag, Map, Title) ON CONFLICT REPLACE \
-	);"))
-	{
-		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		SetFailState("Creating wml_maps_all failed: %s", error);
-	}
-}
-
-/*
- * Removes an entry identified by Id if tag-less.
- */
-DB_RemoveUntagged(id)
-{
-	if (g_dbiStorage == INVALID_HANDLE)
-		return;
-	
-	new String:query[MAX_QUERY_LEN];
-	Format(query, sizeof(query), " \
-		DELETE FROM wml_workshop_maps \
-		WHERE Tag = '' AND Id = %d;", id);
-	
-	SQL_LockDatabase(g_dbiStorage);
-	SQL_FastQuery(g_dbiStorage, query);
-	SQL_UnlockDatabase(g_dbiStorage);
-}
-
-/*
- * Adds skeleton of new map to database.
- */
- DB_AddNewMap(id, String:file[])
- {
-	new String:query[MAX_QUERY_LEN];
-	Format(query, sizeof(query), " \
-		INSERT OR REPLACE INTO wml_workshop_maps VALUES \
-			(%d, \"\", \"%s\", \"\");", id, file);
-
-	SQL_LockDatabase(g_dbiStorage);
-	if (!SQL_FastQuery(g_dbiStorage, query))
-	{
-		new String:error[MAX_ERROR_LEN];
-		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		PrintToServer("Failed to query (error: %s)", error);
-	}
-	SQL_UnlockDatabase(g_dbiStorage);
- }
- 
- /*
- * Adds title to map with specified id.
- */
- DB_SetMapTitle(id, String:title[])
- {
-	new String:query[MAX_QUERY_LEN];
-	Format(query, sizeof(query), " \
-		UPDATE OR REPLACE wml_workshop_maps \
-		SET Title = \"%s\" WHERE Id = %d;", title, id);
-
-	SQL_LockDatabase(g_dbiStorage);
-	if (!SQL_FastQuery(g_dbiStorage, query))
-	{
-		new String:error[MAX_ERROR_LEN];
-		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		PrintToServer("Failed setting map title (error: %s)", error);
-	}
-	SQL_UnlockDatabase(g_dbiStorage);
- }
- 
- /*
- * Adds tag to map with specified id.
- */
- DB_SetMapTag(id, String:tag[])
- {
-	new String:query[MAX_QUERY_LEN];
-	Format(query, sizeof(query), " \
-		INSERT INTO wml_workshop_maps (Id, Tag, Map, Title) \
-		SELECT Id, \"%s\", Map, Title \
-		FROM wml_workshop_maps \
-		WHERE Id = %d;", tag, id);
-
-	SQL_LockDatabase(g_dbiStorage);
-	if (!SQL_FastQuery(g_dbiStorage, query))
-	{
-		new String:error[MAX_ERROR_LEN];
-		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		PrintToServer("Failed setting map tag (error: %s)", error);
-	}
-	SQL_UnlockDatabase(g_dbiStorage);
- }
- 
-/*
- * Helper to get local map path from ID.
- */
-bool:DB_GetMapPath(id, String:path[])
-{
-	new Handle:h_Query = INVALID_HANDLE;
-	new String:query[MAX_QUERY_LEN];
-	
-	Format(query, sizeof(query), " \
-		SELECT 'workshop/' || Id || '/' || Map \
-		FROM wml_workshop_maps WHERE Id = %d;", id);
-		
-	SQL_LockDatabase(g_dbiStorage);
-	h_Query = SQL_Query(g_dbiStorage, query);
-	if (h_Query == INVALID_HANDLE)
-	{
-		new String:error[MAX_ERROR_LEN];
-		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		PrintToServer("Failed setting map tag (error: %s)", error);
-	}
-	SQL_UnlockDatabase(g_dbiStorage);
-			
-	if (!SQL_FetchRow(h_Query))
-	{
-		CloneHandle(h_Query);
-		return false;
-	}
-	
-	SQL_FetchString(h_Query, 0, path, PLATFORM_MAX_PATH + 1);
-	CloseHandle(h_Query);
-	
-	return true;
 }
 
