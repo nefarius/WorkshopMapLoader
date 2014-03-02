@@ -18,10 +18,12 @@ stock GetPublishedFileDetails(const String:id[])
 	if (SYSTEM2_AVAILABLE())
 	{
 		System2_GetPage(OnGetPageComplete, request, data, WAPI_USERAGENT, pack);
+		return;
 	}
 	else if (CURL_AVAILABLE())
 	{
-		cURL_GetPage(OnCurlComplete, request, data, WAPI_USERAGENT, pack);
+		cURL_GetPage(request, data, WAPI_USERAGENT, pack);
+		return;
 	}
 	else
 	{

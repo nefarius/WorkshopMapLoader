@@ -12,16 +12,15 @@
 #pragma semicolon 1
 #include <sourcemod>
 #include <regex>
-#undef REQUIRE_EXTENSIONS
-#include <system2>
-#include <cURL>
-#define REQUIRE_EXTENSIONS
 #undef REQUIRE_PLUGIN
 #include <mapchooser>
 #include <updater>
 #define REQUIRE_PLUGIN
+#undef REQUIRE_EXTENSIONS
+#include <system2>
+#include <cURL>
 
-#define PLUGIN_VERSION 		"0.4.28"
+#define PLUGIN_VERSION 		"0.5.0"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
