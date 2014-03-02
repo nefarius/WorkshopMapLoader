@@ -15,6 +15,7 @@
 #include <system2>
 #undef REQUIRE_PLUGIN
 #include <mapchooser>
+#include <updater>
 #define REQUIRE_PLUGIN
 
 #define PLUGIN_VERSION 		"0.4.28"
@@ -48,6 +49,10 @@
 new bool:g_IsMapChooserLoaded = false;
 new bool:g_IsVoteInTriggered = false;
 
+// Updater
+#define PLUGIN_UPDATER		"updater"
+#define UPDATE_URL			"https://github.com/nefarius/WorkshopMapLoader/blob/master/"
+
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;
 
@@ -76,6 +81,7 @@ new Handle:g_RegexMap = INVALID_HANDLE;
 #include "wml/wml.adminmenu.sp"
 #include "wml/wml.filesystem.sp"
 #include "wml/wml.system2.sp"
+#include "wml/wml.updater.sp"
 
 
 public Plugin:myinfo =
@@ -207,6 +213,9 @@ public OnAllPluginsLoaded()
 {
 	if (LibraryExists(PLUGIN_MC))
 		g_IsMapChooserLoaded = true;
+		
+	if (LibraryExists(PLUGIN_UPDATER))
+		Updater_AddPlugin(UPDATE_URL);
 }
 
 /*
@@ -217,6 +226,9 @@ public OnLibraryAdded(const String:name[])
 	// Check for presence of Extended MapChooser
 	if (StrEqual(name, PLUGIN_MC))
 		g_IsMapChooserLoaded = true;
+	
+	if (StrEqual(name, PLUGIN_UPDATER))
+		Updater_AddPlugin(UPDATE_URL);
 }
 
 /*
