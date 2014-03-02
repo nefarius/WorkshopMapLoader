@@ -14,6 +14,6 @@ GetPublishedFileDetails(const String:id[])
 	// Attach ID to keep track of response
 	new Handle:pack = CreateDataPack();
 	WritePackString(pack, id);
-	System2_GetPage(OnGetPage, request, data, WAPI_USERAGENT, pack);
+	System2_GetPage(System2_OnGetPage, request, data, WAPI_USERAGENT, pack);
 }
 
