@@ -1,7 +1,7 @@
 /*
  * Gets called when response is received.
  */
-public System2_OnGetPage(const String:output[], const size, CMDReturn:status, any:data)
+public OnGetPageComplete(const String:output[], const size, CMDReturn:status, any:data)
 {
 	// Get associated ID
 	decl String:id[MAX_ID_LEN];

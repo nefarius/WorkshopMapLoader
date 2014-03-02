@@ -53,6 +53,10 @@ new bool:g_IsVoteInTriggered = false;
 #define PLUGIN_UPDATER		"updater"
 #define UPDATE_URL			"https://github.com/nefarius/WorkshopMapLoader/blob/master/"
 
+// Feature checks
+#define CURL_AVAILABLE()		(GetFeatureStatus(FeatureType_Native, "curl_easy_init") == FeatureStatus_Available)
+#define SYSTEM2_AVAILABLE()		(GetFeatureStatus(FeatureType_Native, "System2_GetPage") == FeatureStatus_Available)
+
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;
 
@@ -82,6 +86,7 @@ new Handle:g_RegexMap = INVALID_HANDLE;
 #include "wml/wml.filesystem.sp"
 #include "wml/wml.system2.sp"
 #include "wml/wml.updater.sp"
+#include "wml/wml.curl.sp"
 
 
 public Plugin:myinfo =

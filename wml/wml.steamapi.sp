@@ -11,9 +11,11 @@ GetPublishedFileDetails(const String:id[])
 	decl String:data[MAX_POST_LEN];
 	Format(data, MAX_POST_LEN, "itemcount=1&publishedfileids%%5B0%%5D=%s&format=vdf", id);
 	
-	// Attach ID to keep track of response
-	new Handle:pack = CreateDataPack();
-	WritePackString(pack, id);
-	System2_GetPage(System2_OnGetPage, request, data, WAPI_USERAGENT, pack);
+	if (SYSTEM2_AVAILABLE())
+	{
+		// Attach ID to keep track of response
+		new Handle:pack = CreateDataPack();
+		WritePackString(pack, id);
+		System2_GetPage(OnGetPageComplete, request, data, WAPI_USERAGENT, pack);
+	}
 }
-
