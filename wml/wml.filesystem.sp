@@ -1,7 +1,7 @@
 /*
  * Recursively fetch content of given folder.
  */
-ReadFolder(String:path[])
+stock ReadFolder(String:path[])
 {
 	new Handle:dirh = INVALID_HANDLE;
 	new String:buffer[PLATFORM_MAX_PATH + 1];
@@ -54,3 +54,7 @@ ReadFolder(String:path[])
 	CloseHandle(dirh);
 }
 
+stock GetTempFilePath(String:path[], maxsize, id)
+{
+	BuildPath(Path_SM, path, maxsize, "%s/%s.txt", WML_TMP_DIR, id);
+}
