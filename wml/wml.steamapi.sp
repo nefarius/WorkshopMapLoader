@@ -1,3 +1,10 @@
+// Feature checks
+#define CURL_AVAILABLE()		(GetFeatureStatus(FeatureType_Native, "curl_easy_init") == FeatureStatus_Available)
+#define SYSTEM2_AVAILABLE()		(GetFeatureStatus(FeatureType_Native, "System2_GetPage") == FeatureStatus_Available)
+
+#include "wml/wml.system2.sp"
+#include "wml/wml.curl.sp"
+
 /*
  * API Call to fetch Workshop ID details.
  */
