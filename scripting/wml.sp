@@ -82,7 +82,6 @@ new Handle:g_RegexMap = INVALID_HANDLE;
 #include "wml/wml.commands.sp"
 #include "wml/wml.adminmenu.sp"
 #include "wml/wml.filesystem.sp"
-#include "wml/wml.updater.sp"
 
 
 public Plugin:myinfo =
