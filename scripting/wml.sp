@@ -116,6 +116,10 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	// System2
 	MarkNativeAsOptional("System2_GetPage");
 	
+	// Updater
+	MarkNativeAsOptional("Updater_AddPlugin");
+	MarkNativeAsOptional("ReloadPlugin");
+	
 	return APLRes_Success;
 }
  
