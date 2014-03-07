@@ -57,6 +57,7 @@ public OnCurlComplete(Handle:hndl, CURLcode:code , any:data)
 	{
 		new String:error[MAX_ERROR_LEN];
 		curl_easy_strerror(code, error, sizeof(error));
+		LogError("Steam API error: couldn't fetch data for file ID %s (%s)", id, error);
 		CloseHandle(hndl);
 		return;
 	}

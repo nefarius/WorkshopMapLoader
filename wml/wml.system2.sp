@@ -39,7 +39,7 @@ public OnGetPageComplete(const String:output[], const size, CMDReturn:status, an
 		case CMD_SUCCESS:
 		{
 			CloseHandle(data);
-			LogMessage("[System2] Successfully received file details for ID %s", id);
+			LogMessage("Successfully received file details for ID %s", id);
 			WriteFileString(file, output, false);
 			CloseHandle(file);
 			// Start parsing the file content
