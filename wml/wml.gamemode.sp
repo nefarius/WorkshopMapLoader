@@ -40,7 +40,7 @@ enum
 /*
  * Get current game mode/type.
  */
-GetMode()
+stock GetMode()
 {
 	new type = GetConVarInt(g_cvarGameType);
 	new mode = GetConVarInt(g_cvarGameMode);
@@ -64,7 +64,7 @@ GetMode()
 /*
  * Changes game type and game mode to set value
  */
-ChangeMode(mode)
+stock ChangeMode(mode)
 {
 	// NOTE: this avoids possible loops
 	g_IsChangingMode = true;
@@ -87,37 +87,37 @@ ChangeMode(mode)
 }
 
 // https://forums.alliedmods.net/showthread.php?p=1891305
-ChangeModeCasual()
+stock ChangeModeCasual()
 {
 	SetConVarInt(g_cvarGameType, GameType_Classic);
 	SetConVarInt(g_cvarGameMode, ClassicMode_Casual);
 }
 
-ChangeModeCompetitive()
+stock ChangeModeCompetitive()
 {
 	SetConVarInt(g_cvarGameType, GameType_Classic);
 	SetConVarInt(g_cvarGameMode, ClassicMode_Competitive);
 }
 
-ChangeModeArmsrace()
+stock ChangeModeArmsrace()
 {
 	SetConVarInt(g_cvarGameType, GameType_GunGame);
 	SetConVarInt(g_cvarGameMode, GunGameMode_ArmsRace);
 }
 
-ChangeModeDemolition()
+stock ChangeModeDemolition()
 {
 	SetConVarInt(g_cvarGameType, GameType_GunGame);
 	SetConVarInt(g_cvarGameMode, GunGameMode_Demolition);
 }
 
-ChangeModeDeathmatch()
+stock ChangeModeDeathmatch()
 {
 	SetConVarInt(g_cvarGameType, GameType_GunGame);
 	SetConVarInt(g_cvarGameMode, GunGameMode_DeathMatch);
 }
 
-ChangeModeCustom()
+stock ChangeModeCustom()
 {
 	SetConVarInt(g_cvarGameType, GameType_Custom);
 	SetConVarInt(g_cvarGameMode, ClassicMode_Casual);

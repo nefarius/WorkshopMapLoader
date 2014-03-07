@@ -100,6 +100,25 @@ public Plugin:myinfo =
  */
 
 /*
+ * Pre-plugin load event.
+ */
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	// cURL
+	MarkNativeAsOptional("curl_OpenFile");
+	MarkNativeAsOptional("curl_easy_init");
+	MarkNativeAsOptional("curl_easy_setopt_handle");
+	MarkNativeAsOptional("curl_easy_setopt_string");
+	MarkNativeAsOptional("curl_easy_perform_thread");
+	MarkNativeAsOptional("curl_easy_strerror");
+	
+	// System2
+	MarkNativeAsOptional("System2_GetPage");
+	
+	return APLRes_Success;
+}
+ 
+/*
  * Plugin load event.
  */
 public OnPluginStart()
