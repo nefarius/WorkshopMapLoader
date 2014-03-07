@@ -54,7 +54,7 @@ stock ReadFolder(String:path[])
 	CloseHandle(dirh);
 }
 
-stock GetTempFilePath(String:path[], maxsize, id)
+stock GetTempFilePath(String:path[], maxsize, const String:id[])
 {
 	BuildPath(Path_SM, path, maxsize, "%s/%s.txt", WML_TMP_DIR, id);
 }

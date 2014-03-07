@@ -20,7 +20,7 @@ stock cURL_GetPage(CURL_OnComplete:OnCurlComplete, const String:URL[], const Str
 		ReadPackString(data, id, sizeof(id));
 		
 		decl String:path[PLATFORM_MAX_PATH + 1];
-		GetTempFilePath(path, sizeof(path), StringToInt(id));
+		GetTempFilePath(path, sizeof(path), id);
 		
 		new Handle:file = curl_OpenFile(path, "wt");
 		if (file == INVALID_HANDLE)
@@ -64,7 +64,7 @@ public OnCurlComplete(Handle:hndl, CURLcode:code , any:data)
 	LogMessage("Successfully received file details for ID %s", id);
 	
 	decl String:path[PLATFORM_MAX_PATH + 1];
-	GetTempFilePath(path, sizeof(path), StringToInt(id));
+	GetTempFilePath(path, sizeof(path), id);
 	
 	// Begin parse response
 	new Handle:kv = CreateKeyValues("response");

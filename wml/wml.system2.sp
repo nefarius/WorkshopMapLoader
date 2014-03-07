@@ -17,7 +17,7 @@ public OnGetPageComplete(const String:output[], const size, CMDReturn:status, an
 	
 	// Create Kv file
 	decl String:path[PLATFORM_MAX_PATH + 1];
-	GetTempFilePath(path, sizeof(path), StringToInt(id));
+	GetTempFilePath(path, sizeof(path), id);
 	
 	new Handle:file = OpenFile(path, "a+t");
 	if (file == INVALID_HANDLE)
