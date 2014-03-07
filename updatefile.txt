@@ -15,5 +15,14 @@
 		"Plugin"	"Path_SM/plugins/wml.smx"
 		
 		"Source"	"Path_SM/scripting/wml.sp"
+		"Source"	"Path_SM/scripting/wml/wml.adminmenu.sp"
+		"Source"	"Path_SM/scripting/wml/wml.commands.sp"
+		"Source"	"Path_SM/scripting/wml/wml.curl.sp"
+		"Source"	"Path_SM/scripting/wml/wml.database.sp"
+		"Source"	"Path_SM/scripting/wml/wml.filesystem.sp"
+		"Source"	"Path_SM/scripting/wml/wml.gamemode.sp"
+		"Source"	"Path_SM/scripting/wml/wml.steamapi.sp"
+		"Source"	"Path_SM/scripting/wml/wml.system2.sp"
+		"Source"	"Path_SM/scripting/wml/wml.updater.sp"
 	}
 }
