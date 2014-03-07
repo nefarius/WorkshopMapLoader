@@ -111,6 +111,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	MarkNativeAsOptional("curl_easy_setopt_string");
 	MarkNativeAsOptional("curl_easy_perform_thread");
 	MarkNativeAsOptional("curl_easy_strerror");
+	MarkNativeAsOptional("curl_easy_setopt_int_array");
 	
 	// System2
 	MarkNativeAsOptional("System2_GetPage");

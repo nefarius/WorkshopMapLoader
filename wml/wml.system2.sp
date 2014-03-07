@@ -42,24 +42,8 @@ public OnGetPageComplete(const String:output[], const size, CMDReturn:status, an
 			LogMessage("[System2] Successfully received file details for ID %s", id);
 			WriteFileString(file, output, false);
 			CloseHandle(file);
-			
-			// Begin parse response
-			new Handle:kv = CreateKeyValues("response");
-			if(kv != INVALID_HANDLE)
-			{
-				if (FileToKeyValues(kv, path))
-				{
-					BrowseKeyValues(kv, id);
-					CloseHandle(kv);
-					// Once the map has been tagged, it's origin may be purged
-					DB_RemoveUntagged(StringToInt(id));
-				}
-				else
-					LogError("Couldn't open KeyValues for file ID %s", id);
-			}
-			
-			// Delete (temporary) Kv file
-			DeleteFile(path);
+			// Start parsing the file content
+			InterpretTempFile(path, id);
 		}
 		default:
 			CloseHandle(file);

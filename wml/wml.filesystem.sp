@@ -58,3 +58,24 @@ stock GetTempFilePath(String:path[], maxsize, const String:id[])
 {
 	BuildPath(Path_SM, path, maxsize, "%s/%s.txt", WML_TMP_DIR, id);
 }
+
+stock InterpretTempFile(const String:path[], const String:id[])
+{
+	// Begin parse response
+	new Handle:kv = CreateKeyValues("response");
+	if(kv != INVALID_HANDLE)
+	{
+		if (FileToKeyValues(kv, path))
+		{
+			BrowseKeyValues(kv, id);
+			CloseHandle(kv);
+			// Once the map has been tagged, it's origin may be purged
+			DB_RemoveUntagged(StringToInt(id));
+		}
+		else
+			LogError("Couldn't open KeyValues for file ID %s", id);
+	}
+	
+	// Delete (temporary) Kv file
+	DeleteFile(path);
+}

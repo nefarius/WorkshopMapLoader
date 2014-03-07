@@ -65,22 +65,6 @@ public OnCurlComplete(Handle:hndl, CURLcode:code , any:data)
 	
 	decl String:path[PLATFORM_MAX_PATH + 1];
 	GetTempFilePath(path, sizeof(path), id);
-	
-	// Begin parse response
-	new Handle:kv = CreateKeyValues("response");
-	if(kv != INVALID_HANDLE)
-	{
-		if (FileToKeyValues(kv, path))
-		{
-			BrowseKeyValues(kv, id);
-			CloseHandle(kv);
-			// Once the map has been tagged, it's origin may be purged
-			DB_RemoveUntagged(StringToInt(id));
-		}
-		else
-			LogError("Couldn't open KeyValues for file ID %s", id);
-	}
-	
-	// Delete (temporary) Kv file
-	DeleteFile(path);
+	// Start parsing the file content
+	InterpretTempFile(path, id);
 }
