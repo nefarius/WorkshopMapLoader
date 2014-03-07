@@ -378,7 +378,7 @@ public Action:PerformMapChange(Handle:timer, Handle:pack)
 /*
  * Dives through local stored map info file.
  */
-BrowseKeyValues(Handle:kv, const String:id[])
+stock BrowseKeyValues(Handle:kv, const String:id[])
 {
 	decl String:buffer[MAX_ATTRIB_LEN];
 
@@ -404,7 +404,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 				{
 					// TODO: We already have this value, maybe compare for check?
 					//KvGetString(kv, NULL_STRING, buffer, sizeof(buffer));
-#if defined WML_DEBUG
+#if defined DEBUG
 					PrintToServer("ID: %s", buffer);
 #endif
 				}
@@ -412,7 +412,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 				{
 					// Retrieve and store official map title
 					KvGetString(kv, NULL_STRING, buffer, sizeof(buffer));
-#if defined WML_DEBUG
+#if defined DEBUG
 					PrintToServer("Title: %s", buffer);
 #endif
 					DB_SetMapTitle(StringToInt(id), buffer);
@@ -421,7 +421,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 				{
 					// Retrieve tag and associate map with it
 					KvGetString(kv, NULL_STRING, buffer, sizeof(buffer));
-#if defined WML_DEBUG
+#if defined DEBUG
 					PrintToServer("Tag: %s", buffer);
 #endif
 					DB_SetMapTag(StringToInt(id), buffer);
@@ -439,7 +439,7 @@ BrowseKeyValues(Handle:kv, const String:id[])
 /*
  * Perform map change.
  */
-ChangeLevel2(const String:map[], const Float:delay=2.0)
+stock ChangeLevel2(const String:map[], const Float:delay=2.0)
 {
 	// Submit map name to timer callback
 	new Handle:h_MapName = CreateDataPack();
@@ -451,7 +451,7 @@ ChangeLevel2(const String:map[], const Float:delay=2.0)
 /*
  * Trims away file extension and adds element to global map list.
  */
-AddMapToList(String:map[])
+stock AddMapToList(String:map[])
 {
 	if (StrEqual(map[strlen(map) - 3], "bsp", false))
 	{
@@ -478,7 +478,7 @@ AddMapToList(String:map[])
 /*
  * Builds in-memory map list and user menu.
  * */
-GenerateMapList()
+stock GenerateMapList()
 {
 	// Dive through file system
 	ReadFolder(WORKSHOP_BASE_DIR);
