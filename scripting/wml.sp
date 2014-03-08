@@ -53,7 +53,7 @@ new bool:g_IsVoteInTriggered = false;
 
 // Updater
 #define PLUGIN_UPDATER		"updater"
-#define UPDATE_URL			"http://nefarius.at/unenc.php?url=https%3A%2F%2Fraw.github.com%2Fnefarius%2FWorkshopMapLoader%2Fmaster%2Fupdatefile.txt"
+#define UPDATE_URL			"http://nefarius.at/wml.update.php"
 
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;
