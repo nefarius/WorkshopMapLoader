@@ -1,0 +1,66 @@
+"Phrases"
+{
+	"Error No MC"
+	{
+		"en"			"Command unavailable, no MapChooser plugin not loaded!"
+	}	
+
+	"Non Existing Category"
+	{
+		"en"			"Somehow you managed to select a non existing category :("
+	}	
+
+	"Nominate No Argument"
+	{
+		"en"			"Please specify an amount of maps"
+	}
+
+	"Nominate Invalid Argument"
+	{
+		"en"			"This command only accepts numbers"
+	}
+	
+	"Unknown Game Mode Error"
+	{
+		"en"			"Couldn't detect the current game mode!"
+	}
+
+	"Nominate Added"
+	{
+		"#format"		"{1:s}"
+		"en"			"Nominated map: {1}"
+	}
+	
+	"Nominate Invalid Map"
+	{
+		"#format"		"{1:s}"
+		"en"			"Couldn't nominate map: {1}"
+	}
+	
+	"Nominate Replaced"
+	{
+		"#format"		"{1:s}"
+		"en"			"{1} replaced an existing nomination"
+	}
+	
+	"Nominate Already In Vote"
+	{
+		"#format"		"{1:s}"
+		"en"			"{1} is already nominated"
+	}
+
+	"Refreshing Map Details"
+	{
+		"en"			"Refreshing map details..."
+	}
+
+	"Refreshing Map Details Finished"
+	{
+		"en"			"Done refreshing map details"	
+	}
+
+	"Error Display Map List"
+	{
+		"en"			"The map menu could not be generated!"
+	}
+}

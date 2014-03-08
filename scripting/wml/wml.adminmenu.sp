@@ -61,7 +61,7 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
 			DisplayMenu(h_MapMenu, param1, MENU_TIME_FOREVER);
 		}
 		else
-			PrintToChat(param1, "[WML] Somehow you managed to select a non existing category :(");
+			PrintToChat(param1, "[WML] %t", "Non Existing Category");
 	}
 	/*
 	else if (action == MenuAction_End)

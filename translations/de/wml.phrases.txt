@@ -1,0 +1,66 @@
+"Phrases"
+{
+	"Error No MC"
+	{
+		"de"			"Befehl nicht verfügbar, es ist kein MapChooser plugin geladen!"
+	}	
+
+	"Non Existing Category"
+	{
+		"de"			"Du hast es irgendwie geschafft eine nicht existente Kategorie zu wählen :("
+	}	
+
+	"Nominate No Argument"
+	{
+		"de"			"Bitte die Anzahl der Karten angeben"
+	}
+
+	"Nominate Invalid Argument"
+	{
+		"de"			"Dieser Befehl akzeptiert nur Zahlen"
+	}
+	
+	"Unknown Game Mode Error"
+	{
+		"de"			"Der aktuelle Spielmodus konnte nicht erkannt werden!"
+	}
+
+	"Nominate Added"
+	{
+		"#format"		"{1:s}"
+		"de"			"Nominierte Karte: {1}"
+	}
+	
+	"Nominate Invalid Map"
+	{
+		"#format"		"{1:s}"
+		"de"			"Konnte folgende Karte nicht nominieren: {1}"
+	}
+	
+	"Nominate Replaced"
+	{
+		"#format"		"{1:s}"
+		"de"			"{1} hat eine bestehende Nominierung ersetzt"
+	}
+	
+	"Nominate Already In Vote"
+	{
+		"#format"		"{1:s}"
+		"de"			"{1} ist bereits nominiert"
+	}
+
+	"Refreshing Map Details"
+	{
+		"de"			"Erneuere Karten-Details..."
+	}
+
+	"Refreshing Map Details Finished"
+	{
+		"de"			"Erneuern der Karten-Details abgeschlossen"	
+	}
+
+	"Error Display Map List"
+	{
+		"de"			"Das Kartenmenü konnte nicht erzeugt werden!"
+	}
+}

@@ -47,7 +47,6 @@
 
 // Map Chooser
 #define PLUGIN_MC			"mapchooser"
-#define ERROR_NO_MC			"[WML] Command unavailable, MapChooser not loaded!"
 new bool:g_IsMapChooserLoaded = false;
 new bool:g_IsVoteInTriggered = false;
 
@@ -127,6 +126,10 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
  */
 public OnPluginStart()
 {
+	// Load translations
+	LoadTranslations("common.phrases");
+	LoadTranslations("wml.phrases");
+	
 	// *** Internals ***
 	// Pre-compile regex to improve performance
 	// Extracts ID from workshop path

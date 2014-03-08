@@ -13,6 +13,8 @@
 	"Files"
 	{
 		"Plugin"	"Path_SM/plugins/wml.smx"
+		"Plugin"	"Path_SM/translations/wml.phrases.txt"
+		"Plugin"	"Path_SM/translations/de/wml.phrases.txt"
 		
 		"Source"	"Path_SM/scripting/wml.sp"
 		"Source"	"Path_SM/scripting/wml/wml.adminmenu.sp"

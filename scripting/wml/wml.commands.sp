@@ -7,14 +7,14 @@ public Action:Cmd_NominateRandom(client, args)
 	// Is Extended MapChooser available
 	if (!g_IsMapChooserLoaded)
 	{
-		PrintToChat(client, ERROR_NO_MC);
+		PrintToChat(client, "[WML] %t", "Error No MC");
 		return Plugin_Handled;
 	}
 	
 	// Is argument supplied
 	if (args < 1)
 	{
-		PrintToConsole(client, "No argument specified");
+		PrintToConsole(client, "[WML] %t", "Nominate No Argument");
 		return Plugin_Handled;
 	}
 	
@@ -25,7 +25,7 @@ public Action:Cmd_NominateRandom(client, args)
 	// Is argument valid/within range
 	if (0 >= (count = StringToInt(buffer)))
 	{
-		PrintToConsole(client, "Invalid argument specified");
+		PrintToConsole(client, "[WML] %t", "Nominate Invalid Argument");
 		return Plugin_Handled;
 	}
 	
@@ -47,7 +47,7 @@ public Action:Cmd_NominateRandom(client, args)
 			mode = TAG_Custom;
 		default:
 		{
-			PrintToConsole(client, "Couldn't detect valid game mode");
+			PrintToConsole(client, "[WML] %t", "Unknown Game Mode Error");
 			return Plugin_Handled;
 		}
 	}
@@ -69,13 +69,13 @@ public Action:Cmd_NominateRandom(client, args)
 		switch (NominateMap(map, true, client))
 		{
 			case Nominate_Added:
-				PrintToConsole(client, "Nominated map: %s", map);
+				PrintToConsole(client, "[WML] %t", "Nominate Added", map);
 			case Nominate_InvalidMap:
-				PrintToConsole(client, "Couldn't nominate %s", map);
+				PrintToConsole(client, "[WML] %t", "Nominate Invalid Map", map);
 			case Nominate_Replaced:
-				PrintToConsole(client, "%s replaced an existing nomination", map);
+				PrintToConsole(client, "[WML] %t", "Nominate Replaced", map);
 			case Nominate_AlreadyInVote:
-				PrintToConsole(client, "%s is already nominated", map);
+				PrintToConsole(client, "[WML] %t", "Nominate Already In Vote", map);
 		}
 	}
 	
@@ -94,7 +94,7 @@ public Action:Cmd_VoteNow(client, args)
 	if (!g_IsMapChooserLoaded)
 	{
 		LogError("Vote was requested but MapChooser is not loaded");
-		PrintToChat(client, ERROR_NO_MC);
+		PrintToChat(client, "[WML] %t", "Error No MC");
 		return Plugin_Handled;
 	}
 
@@ -109,9 +109,9 @@ public Action:Cmd_VoteNow(client, args)
  */
 public Action:Cmd_ReloadMapList(client, args)
 {
-	PrintToConsole(client, "[WML] Refreshing map details...");
+	PrintToConsole(client, "[WML] %t", "Refreshing Map Details");
 	GenerateMapList();
-	PrintToConsole(client, "[WML] Done refreshing map details");
+	PrintToConsole(client, "[WML] %t", "Refreshing Map Details Finished");
 	
 	return Plugin_Handled;
 }
@@ -124,7 +124,7 @@ public Action:Cmd_DisplayMapList(client, args)
 	// NOTE: stored to g_MapMenu to make Back button work
 	if ((g_MapMenu = BuildCategoryMenu()) == INVALID_HANDLE)
 	{
-		PrintToConsole(client, "[WML] The map list and/or menu could not be generated!");
+		PrintToConsole(client, "[WML] %t", "Error Display Map List");
 		return Plugin_Handled;
 	}	
  
