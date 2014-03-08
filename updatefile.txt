@@ -4,12 +4,11 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.6.0"
+			"Latest"	"0.7.0"
 		}
 		
 		"Notes"		"Implemented client side translations for:"
-		"Notes"		"    - English"
-		"Notes"		"    - German"
+		"Notes"		"    - Russian"
 	}
 	
 	"Files"
@@ -17,6 +16,7 @@
 		"Plugin"	"Path_SM/plugins/wml.smx"
 		"Plugin"	"Path_SM/translations/wml.phrases.txt"
 		"Plugin"	"Path_SM/translations/de/wml.phrases.txt"
+		"Plugin"	"Path_SM/translations/ru/wml.phrases.txt"
 		
 		"Source"	"Path_SM/scripting/wml.sp"
 		"Source"	"Path_SM/scripting/wml/wml.adminmenu.sp"

@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.6.0"
+#define PLUGIN_VERSION 		"0.7.0"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"

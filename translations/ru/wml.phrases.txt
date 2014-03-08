@@ -1,0 +1,66 @@
+"Phrases"
+{
+	"Error No MC"
+	{
+		"ru"			"Команда недоступна, не установлен MapChooser!"
+	}	
+
+	"Non Existing Category"
+	{
+		"ru"			"Каким-то образом Вам удалось выбрать несуществующую категорию :("
+	}	
+
+	"Nominate No Argument"
+	{
+		"ru"			"Пожалуйста, укажите количество карт"
+	}
+
+	"Nominate Invalid Argument"
+	{
+		"ru"			"Эта команда принимает только числа"
+	}
+	
+	"Unknown Game Mode Error"
+	{
+		"ru"			"Не найден текущий игровой режим!"
+	}
+
+	"Nominate Added"
+	{
+		"#format"		"{1:s}"
+		"ru"			"Выбранная карта: {1}"
+	}
+	
+	"Nominate Invalid Map"
+	{
+		"#format"		"{1:s}"
+		"ru"			"Не удалось выбрать карту: {1}"
+	}
+	
+	"Nominate Replaced"
+	{
+		"#format"		"{1:s}"
+		"ru"			"{1} заменил прошлый выбор"
+	}
+	
+	"Nominate Already In Vote"
+	{
+		"#format"		"{1:s}"
+		"ru"			"{1} уже выбран"
+	}
+
+	"Refreshing Map Details"
+	{
+		"ru"			"Обновляем детали карты..."
+	}
+
+	"Refreshing Map Details Finished"
+	{
+		"ru"			"Детали карты обновлены"
+	}
+
+	"Error Display Map List"
+	{
+		"ru"			"Не удалось сгенерировать меню карты!"
+	}
+}
