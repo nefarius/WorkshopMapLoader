@@ -2,7 +2,7 @@
 {
 	"Error No MC"
 	{
-		"en"			"Command unavailable, no MapChooser plugin not loaded!"
+		"en"			"Command unavailable, no MapChooser plugin loaded!"
 	}	
 
 	"Non Existing Category"
