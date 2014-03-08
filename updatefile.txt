@@ -4,10 +4,12 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.5.0"
+			"Latest"	"0.6.0"
 		}
 		
-		"Notes"		"Some changes"
+		"Notes"		"Implemented client side translations for:"
+		"Notes"		"    - English"
+		"Notes"		"    - German"
 	}
 	
 	"Files"
