@@ -8,6 +8,7 @@ public OnGetPageComplete(const String:output[], const size, CMDReturn:status, an
 	ResetPack(data);
 	ReadPackString(data, id, sizeof(id));
 	
+	// Handle error condition
 	if (status == CMD_ERROR)
 	{
 		LogError("Steam API error: couldn't fetch data for file ID %s", id);
@@ -15,10 +16,11 @@ public OnGetPageComplete(const String:output[], const size, CMDReturn:status, an
 		return;
 	}
 	
-	// Create Kv file
+	// Get temp file path
 	decl String:path[PLATFORM_MAX_PATH + 1];
 	GetTempFilePath(path, sizeof(path), id);
 	
+	// Create new file or append to existing
 	new Handle:file = OpenFile(path, "a+t");
 	if (file == INVALID_HANDLE)
 	{

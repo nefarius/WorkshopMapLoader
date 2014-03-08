@@ -9,8 +9,12 @@ new CURL_Default_opt[][2] = {
 
 #define CURL_DEFAULT_OPT(%1) curl_easy_setopt_int_array(%1, CURL_Default_opt, sizeof(CURL_Default_opt))
 
+/*
+ * Creates a web request with cURL.
+ */
 stock cURL_GetPage(CURL_OnComplete:OnCurlComplete, const String:URL[], const String:POST[] = "", const String:useragent[] = "", any:data = INVALID_HANDLE)
 {
+	// Prepare new request
 	new Handle:curl = curl_easy_init();
 	if(curl != INVALID_HANDLE)
 	{
@@ -19,9 +23,11 @@ stock cURL_GetPage(CURL_OnComplete:OnCurlComplete, const String:URL[], const Str
 		ResetPack(data);
 		ReadPackString(data, id, sizeof(id));
 		
+		// Get temp file path
 		decl String:path[PLATFORM_MAX_PATH + 1];
 		GetTempFilePath(path, sizeof(path), id);
 		
+		// Create new empty file
 		new Handle:file = curl_OpenFile(path, "wt");
 		if (file == INVALID_HANDLE)
 		{
@@ -31,9 +37,12 @@ stock cURL_GetPage(CURL_OnComplete:OnCurlComplete, const String:URL[], const Str
 		}
 		
 		new Handle:hDLPack = CreateDataPack();
+		// Encapsulate ID
 		WritePackString(hDLPack, id);
+		// Encapsulate temp file handle
 		WritePackCell(hDLPack, file);
 		
+		// Set request options
 		CURL_DEFAULT_OPT(curl);
 		curl_easy_setopt_string(curl, CURLOPT_URL, URL);
 		curl_easy_setopt_string(curl, CURLOPT_POSTFIELDS, POST);
@@ -43,6 +52,9 @@ stock cURL_GetPage(CURL_OnComplete:OnCurlComplete, const String:URL[], const Str
 	}
 }
 
+/*
+ * Gets fired after a request has been completed.
+ */
 public OnCurlComplete(Handle:hndl, CURLcode:code , any:data)
 {
 	// Get associated ID
@@ -53,6 +65,7 @@ public OnCurlComplete(Handle:hndl, CURLcode:code , any:data)
 	// Close file
 	CloseHandle(Handle:ReadPackCell(data));
 	
+	// Check for error condition
 	if(hndl != INVALID_HANDLE && code != CURLE_OK)
 	{
 		new String:error[MAX_ERROR_LEN];

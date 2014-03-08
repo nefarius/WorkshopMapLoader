@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.5.0"
+#define PLUGIN_VERSION 		"0.5.1"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -129,7 +129,9 @@ public OnPluginStart()
 {
 	// *** Internals ***
 	// Pre-compile regex to improve performance
+	// Extracts ID from workshop path
 	g_RegexId = CompileRegex("\\/(\\d*)\\/");
+	// Matches workshop map path
 	g_RegexMap = CompileRegex("[^/]+$");
 	
 	// *** Cvars ***
