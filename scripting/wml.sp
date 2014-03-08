@@ -53,7 +53,7 @@ new bool:g_IsVoteInTriggered = false;
 
 // Updater
 #define PLUGIN_UPDATER		"updater"
-#define UPDATE_URL			"http://nefarius.at/wml.update.php"
+#define UPDATE_URL			"http://nefarius.at/wml/updatefile.txt"
 
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;
