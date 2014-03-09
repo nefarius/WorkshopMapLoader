@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.7.0"
+#define PLUGIN_VERSION 		"0.7.1"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -126,16 +126,24 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
  */
 public OnPluginStart()
 {
-	// Load translations
-	LoadTranslations("common.phrases");
-	LoadTranslations("wml.phrases");
-	
 	// *** Internals ***
 	// Pre-compile regex to improve performance
 	// Extracts ID from workshop path
 	g_RegexId = CompileRegex("\\/(\\d*)\\/");
 	// Matches workshop map path
 	g_RegexMap = CompileRegex("[^/]+$");
+	
+	// Load translations
+	LoadTranslations("common.phrases");
+	LoadTranslations("wml.phrases");
+	
+	// Open database connection
+	decl String:error[MAX_ERROR_LEN];
+	g_dbiStorage = SQLite_UseDatabase(WML_DB_NAME, error, sizeof(error));
+	if (g_dbiStorage == INVALID_HANDLE)
+		SetFailState("Could not open database: %s", error);
+	// Perform initial database tasks
+	DB_CreateTables();
 	
 	// *** Cvars ***
 	// Plugin version
@@ -204,17 +212,6 @@ public OnPluginStart()
  */
 public OnConfigsExecuted()
 {
-	new String:error[MAX_ERROR_LEN];
-	
-	// Open database connection
-	g_dbiStorage = SQLite_UseDatabase(WML_DB_NAME, error, sizeof(error));
-	if (g_dbiStorage == INVALID_HANDLE)
-	{
-		SetFailState("Could not open database: %s", error);
-	}
-	
-	// Perform initial database tasks
-	DB_CreateTables();
 	// Start fetching content if wished by user
 	if (GetConVarBool(g_cvarAutoLoad))
 		GenerateMapList();

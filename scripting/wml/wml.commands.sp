@@ -52,6 +52,12 @@ public Action:Cmd_NominateRandom(client, args)
 		}
 	}
 	
+	if (g_dbiStorage == INVALID_HANDLE)
+	{
+		PrintToConsole(client, "[WML] %t", "Database Connection Error");
+		return Plugin_Handled;
+	}
+	
 	decl String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \

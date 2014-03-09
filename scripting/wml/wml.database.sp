@@ -50,7 +50,10 @@ DB_RemoveUntagged(id)
  */
  DB_AddNewMap(id, String:file[])
  {
-	new String:query[MAX_QUERY_LEN];
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+		
+	decl String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		INSERT OR REPLACE INTO wml_workshop_maps VALUES \
 			(%d, \"\", \"%s\", \"\");", id, file);
@@ -58,7 +61,7 @@ DB_RemoveUntagged(id)
 	SQL_LockDatabase(g_dbiStorage);
 	if (!SQL_FastQuery(g_dbiStorage, query))
 	{
-		new String:error[MAX_ERROR_LEN];
+		decl String:error[MAX_ERROR_LEN];
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
 		PrintToServer("Failed to query (error: %s)", error);
 	}
@@ -70,7 +73,10 @@ DB_RemoveUntagged(id)
  */
  DB_SetMapTitle(id, String:title[])
  {
-	new String:query[MAX_QUERY_LEN];
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+	
+	decl String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		UPDATE OR REPLACE wml_workshop_maps \
 		SET Title = \"%s\" WHERE Id = %d;", title, id);
@@ -78,7 +84,7 @@ DB_RemoveUntagged(id)
 	SQL_LockDatabase(g_dbiStorage);
 	if (!SQL_FastQuery(g_dbiStorage, query))
 	{
-		new String:error[MAX_ERROR_LEN];
+		decl String:error[MAX_ERROR_LEN];
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
 		PrintToServer("Failed setting map title (error: %s)", error);
 	}
@@ -90,7 +96,10 @@ DB_RemoveUntagged(id)
  */
  DB_SetMapTag(id, String:tag[])
  {
-	new String:query[MAX_QUERY_LEN];
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+		
+	decl String:query[MAX_QUERY_LEN];
 	Format(query, sizeof(query), " \
 		INSERT INTO wml_workshop_maps (Id, Tag, Map, Title) \
 		SELECT Id, \"%s\", Map, Title \
@@ -100,7 +109,7 @@ DB_RemoveUntagged(id)
 	SQL_LockDatabase(g_dbiStorage);
 	if (!SQL_FastQuery(g_dbiStorage, query))
 	{
-		new String:error[MAX_ERROR_LEN];
+		decl String:error[MAX_ERROR_LEN];
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
 		PrintToServer("Failed setting map tag (error: %s)", error);
 	}
@@ -112,8 +121,11 @@ DB_RemoveUntagged(id)
  */
 bool:DB_GetMapPath(id, String:path[])
 {
+	if (g_dbiStorage == INVALID_HANDLE)
+		return false;
+		
 	new Handle:h_Query = INVALID_HANDLE;
-	new String:query[MAX_QUERY_LEN];
+	decl String:query[MAX_QUERY_LEN];
 	
 	Format(query, sizeof(query), " \
 		SELECT 'workshop/' || Id || '/' || Map \
@@ -123,7 +135,7 @@ bool:DB_GetMapPath(id, String:path[])
 	h_Query = SQL_Query(g_dbiStorage, query);
 	if (h_Query == INVALID_HANDLE)
 	{
-		new String:error[MAX_ERROR_LEN];
+		decl String:error[MAX_ERROR_LEN];
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
 		PrintToServer("Failed setting map tag (error: %s)", error);
 	}

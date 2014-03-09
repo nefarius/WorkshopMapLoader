@@ -4,11 +4,11 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.7.0"
+			"Latest"	"0.7.1"
 		}
 		
-		"Notes"		"Implemented client side translations for:"
-		"Notes"		"    - Russian"
+		"Notes"		"String processing performance improvements"
+		"Notes"		"Added better database error handling"
 	}
 	
 	"Files"

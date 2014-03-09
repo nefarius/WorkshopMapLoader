@@ -63,4 +63,9 @@
 	{
 		"en"			"The map menu could not be generated!"
 	}
+	
+	"Database Connection Error"
+	{
+		"en"			"No database connection!"
+	}
 }
