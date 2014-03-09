@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.7.1"
+#define PLUGIN_VERSION 		"0.8.0"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -67,6 +67,7 @@ new Handle:g_cvarGameType = INVALID_HANDLE;
 new Handle:g_cvarGameMode = INVALID_HANDLE;
 new Handle:g_cvarAutoLoad = INVALID_HANDLE;
 new Handle:g_cvarArmsraceWeapon = INVALID_HANDLE;
+new Handle:g_cvarNominateAll = INVALID_HANDLE;
 
 // Menu
 new Handle:g_MapMenu = INVALID_HANDLE;
@@ -167,6 +168,12 @@ public OnPluginStart()
 		"Sets weapon on which the vote will be started on Armsrace <awp = Default>");
 	if (g_cvarArmsraceWeapon == INVALID_HANDLE)
 		LogError("Couldn't register 'sm_wml_armsrace_weapon'!");
+	// Allow all map types for nomination
+	g_cvarNominateAll = CreateConVar("sm_wml_nominate_all_maps", "0",
+		"Allow all maps to get nominated <1 = Enabled, 0 = Disabled/Default>",
+		FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	if (g_cvarNominateAll == INVALID_HANDLE)
+		LogError("Couldn't register 'sm_wml_nominate_all_maps'!");
 	
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", Cmd_DisplayMapList, ADMFLAG_CHANGEMAP, 

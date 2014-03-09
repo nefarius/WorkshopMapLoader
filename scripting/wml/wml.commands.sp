@@ -59,10 +59,21 @@ public Action:Cmd_NominateRandom(client, args)
 	}
 	
 	decl String:query[MAX_QUERY_LEN];
-	Format(query, sizeof(query), " \
-		SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
-		WHERE Tag = \"%s\" \
-		ORDER BY RANDOM() LIMIT %d;", mode, count);
+	if (GetConVarBool(g_cvarNominateAll))
+	{
+		// Nominate all maps
+		Format(query, sizeof(query), " \
+			SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
+			ORDER BY RANDOM() LIMIT %d;", count);
+	}
+	else
+	{
+		// Nominate only maps matching the current game mode
+		Format(query, sizeof(query), " \
+			SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
+			WHERE Tag = \"%s\" \
+			ORDER BY RANDOM() LIMIT %d;", mode, count);
+	}
 	
 	SQL_LockDatabase(g_dbiStorage);	
 	new Handle:h_Query = SQL_Query(g_dbiStorage, query);
