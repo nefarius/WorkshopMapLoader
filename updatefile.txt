@@ -4,7 +4,7 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.8.0"
+			"Latest"	"0.9.0"
 		}
 		
 		"Notes"		"Added Cvars:"
@@ -17,6 +17,7 @@
 		"Plugin"	"Path_SM/translations/wml.phrases.txt"
 		"Plugin"	"Path_SM/translations/de/wml.phrases.txt"
 		"Plugin"	"Path_SM/translations/ru/wml.phrases.txt"
+		"Plugin"	"Path_SM/translations/ro/wml.phrases.txt"
 		
 		"Source"	"Path_SM/scripting/wml.sp"
 		"Source"	"Path_SM/scripting/wml/wml.adminmenu.sp"
