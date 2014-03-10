@@ -7,8 +7,8 @@
 			"Latest"	"0.9.0"
 		}
 		
-		"Notes"		"Added Cvars:"
-		"Notes"		"    - sm_wml_nominate_all_maps"
+		"Notes"		"Added language:"
+		"Notes"		"    - Romanian"
 	}
 	
 	"Files"
