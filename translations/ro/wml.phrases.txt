@@ -1,0 +1,71 @@
+"Phrases"
+{
+	"Error No MC"
+	{
+		"ro"			"Comanda indisponibila, pluginul MapChooser nu este incarcat!"
+	}	
+
+	"Non Existing Category"
+	{
+		"ro"			"Din neatentie, ai selectat administrarea unei categorii inexistente :("
+	}	
+
+	"Nominate No Argument"
+	{
+		"ro"			"Specifica un numar de harti"
+	}
+
+	"Nominate Invalid Argument"
+	{
+		"ro"			"Aceasta comanda accepta doar numere"
+	}
+	
+	"Unknown Game Mode Error"
+	{
+		"ro"			"Nu am putut detecta modul (jocului) curent"
+	}
+
+	"Nominate Added"
+	{
+		"#format"		"{1:s}"
+		"ro"			"Harti nominalizate: {1}"
+	}
+	
+	"Nominate Invalid Map"
+	{
+		"#format"		"{1:s}"
+		"ro"			"Nu am putut nominaliza harta: {1}"
+	}
+	
+	"Nominate Replaced"
+	{
+		"#format"		"{1:s}"
+		"ro"			"{1} a inlocuit o nominalizare existenta"
+	}
+	
+	"Nominate Already In Vote"
+	{
+		"#format"		"{1:s}"
+		"ro"			"{1} este deja nominalizat"
+	}
+
+	"Refreshing Map Details"
+	{
+		"ro"			"Reincarc detaliile harti"
+	}
+
+	"Refreshing Map Details Finished"
+	{
+		"ro"			"Am terminat, detaliile au fost reincarcate"	
+	}
+
+	"Error Display Map List"
+	{
+		"ro"			"Nu am putut genera meniul hartilor!"
+	}
+	
+	"Database Connection Error"
+	{
+		"ro"			"Nu este nici o conexiune la baza de date!"
+	}
+}
