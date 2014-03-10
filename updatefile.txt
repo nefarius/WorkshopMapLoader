@@ -4,11 +4,11 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.9.0"
+			"Latest"	"0.9.1"
 		}
 		
 		"Notes"		"Added language:"
-		"Notes"		"    - Romanian"
+		"Notes"		"    - Romanian (yeah, really now :)"
 	}
 	
 	"Files"
