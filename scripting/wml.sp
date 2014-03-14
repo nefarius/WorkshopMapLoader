@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.9.1"
+#define PLUGIN_VERSION 		"0.10.0"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -75,6 +75,14 @@ new Handle:g_MapMenu = INVALID_HANDLE;
 // Regex
 new Handle:g_RegexId = INVALID_HANDLE;
 new Handle:g_RegexMap = INVALID_HANDLE;
+
+// Supported operating system types
+enum
+{
+	OSType_Unknown = 0,
+	OSType_Windows = 1,
+	OSType_Linux = 2,
+}
 
 #include "wml/wml.database.sp"
 #include "wml/wml.gamemode.sp"
@@ -403,8 +411,17 @@ public Action:PerformMapChange(Handle:timer, Handle:pack)
 	// We enter protected state
 	g_IsChangingLevel = true;
 	LogMessage("Changing map to %s", map);
-	// Fire!
-	ServerCommand("changelevel2 %s", map);
+	
+	// Use different methods for each OS due to SRCDS bugs
+	switch (GetOSType())
+	{
+		case OSType_Windows:
+			ForceChangeLevel(map, "Workshop Map Loader");
+		case OSType_Linux:
+			ServerCommand("changelevel2 %s", map);
+		case OSType_Unknown:
+			LogError("Couldn't detect operating system! Maybe missing wml.os.gamedata.txt?");
+	}
 }
 
 /*
@@ -478,6 +495,22 @@ stock ChangeLevel2(const String:map[], const Float:delay=2.0)
 	WritePackString(h_MapName, map);
 	// Delay for chat messages
 	CreateTimer(delay, PerformMapChange, h_MapName);
+}
+
+/*
+ * Detects underlying operating system.
+ */
+stock GetOSType()
+{
+	new Handle:conf = LoadGameConfigFile("wml.os.gamedata");
+	
+	if (conf == INVALID_HANDLE)
+		return 0; // Error
+	
+	new WindowsOrLinux = GameConfGetOffset(conf, "WindowsOrLinux");
+	CloseHandle(conf);
+	
+	return WindowsOrLinux; //1 for windows; 2 for linux
 }
 
 /*

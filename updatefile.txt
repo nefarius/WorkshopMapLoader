@@ -4,16 +4,16 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.9.1"
+			"Latest"	"0.10.0"
 		}
 		
-		"Notes"		"Added language:"
-		"Notes"		"    - Romanian (yeah, really now :)"
+		"Notes"		"Fixed Windows server crash"
 	}
 	
 	"Files"
 	{
 		"Plugin"	"Path_SM/plugins/wml.smx"
+		"Plugin"	"Path_SM/gamedata/wml.os.gamedata.txt"
 		"Plugin"	"Path_SM/translations/wml.phrases.txt"
 		"Plugin"	"Path_SM/translations/de/wml.phrases.txt"
 		"Plugin"	"Path_SM/translations/ru/wml.phrases.txt"
