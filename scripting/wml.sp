@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.10.0"
+#define PLUGIN_VERSION 		"0.10.1"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -126,6 +126,10 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	// Updater
 	MarkNativeAsOptional("Updater_AddPlugin");
 	MarkNativeAsOptional("ReloadPlugin");
+	
+	// Mapchooser
+	MarkNativeAsOptional("NominateMap");
+	MarkNativeAsOptional("InitiateMapChooserVote");
 	
 	return APLRes_Success;
 }
