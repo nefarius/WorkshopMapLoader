@@ -6,12 +6,12 @@ Handle:BuildCategoryMenu()
 	// Create main menu handle
 	new Handle:menu = CreateMenu(Menu_SelectedCategory);
 	SetMenuTitle(menu, "Please select map category:");
-	AddMenuItem(menu, TAG_Classic, TAG_Classic);
-	AddMenuItem(menu, TAG_Deathmatch, TAG_Deathmatch);
-	AddMenuItem(menu, TAG_Demolition, TAG_Demolition);
-	AddMenuItem(menu, TAG_Armsrace, TAG_Armsrace);
-	AddMenuItem(menu, TAG_Hostage, TAG_Hostage);
-	AddMenuItem(menu, TAG_Custom, TAG_Custom);
+	AddMenuItem(menu, g_Tags[MapTag_Classic], g_Tags[MapTag_Classic]);
+	AddMenuItem(menu, g_Tags[MapTag_Deathmatch], g_Tags[MapTag_Deathmatch]);
+	AddMenuItem(menu, g_Tags[MapTag_Demolition], g_Tags[MapTag_Demolition]);
+	AddMenuItem(menu, g_Tags[MapTag_Armsrace], g_Tags[MapTag_Armsrace]);
+	AddMenuItem(menu, g_Tags[MapTag_Hostage], g_Tags[MapTag_Hostage]);
+	AddMenuItem(menu, g_Tags[MapTag_Custom], g_Tags[MapTag_Custom]);
 	
 	return menu;
 }
@@ -31,27 +31,27 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
 		// Set selected mode and build maps sub-menu
 		if (GetMenuItem(menu, param2, info, MAX_ATTRIB_LEN))
 		{
-			if (StrEqual(info, TAG_Classic, false))
+			if (StrEqual(info, g_Tags[MapTag_Classic], false))
 			{
 				g_SelectedMode = NextMapMode_Casual;
 			}
-			else if (StrEqual(info, TAG_Deathmatch, false))
+			else if (StrEqual(info, g_Tags[MapTag_Deathmatch], false))
 			{
 				g_SelectedMode = NextMapMode_Deathmatch;
 			}
-			else if (StrEqual(info, TAG_Demolition, false))
+			else if (StrEqual(info, g_Tags[MapTag_Demolition], false))
 			{
 				g_SelectedMode = NextMapMode_Demolition;
 			}
-			else if (StrEqual(info, TAG_Armsrace, false))
+			else if (StrEqual(info, g_Tags[MapTag_Armsrace], false))
 			{
 				g_SelectedMode = NextMapMode_Armsrace;
 			}
-			else if (StrEqual(info, TAG_Hostage, false))
+			else if (StrEqual(info, g_Tags[MapTag_Hostage], false))
 			{
 				g_SelectedMode = NextMapMode_Competitive;
 			}
-			else if (StrEqual(info, TAG_Custom, false))
+			else if (StrEqual(info, g_Tags[MapTag_Custom], false))
 			{
 				g_SelectedMode = NextMapMode_Custom;
 			}

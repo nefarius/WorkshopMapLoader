@@ -34,17 +34,17 @@ public Action:Cmd_NominateRandom(client, args)
 	switch (GetMode())
 	{
 		case NextMapMode_Casual:
-			mode = TAG_Classic;
+			mode = g_Tags[MapTag_Classic];
 		case NextMapMode_Competitive:
-			mode = TAG_Hostage;
+			mode = g_Tags[MapTag_Hostage];
 		case NextMapMode_Armsrace:
-			mode = TAG_Armsrace;
+			mode = g_Tags[MapTag_Armsrace];
 		case NextMapMode_Demolition:
-			mode = TAG_Demolition;
+			mode = g_Tags[MapTag_Demolition];
 		case NextMapMode_Deathmatch:
-			mode = TAG_Deathmatch;
+			mode = g_Tags[MapTag_Deathmatch];
 		case NextMapMode_Custom:
-			mode = TAG_Custom;
+			mode = g_Tags[MapTag_Custom];
 		default:
 		{
 			PrintToConsole(client, "[WML] %t", "Unknown Game Mode Error");

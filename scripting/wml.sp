@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.10.1"
+#define PLUGIN_VERSION 		"0.10.2"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -31,6 +31,7 @@
 #define MAX_ATTRIB_LEN		32
 #define MAX_QUERY_LEN		255
 #define MAX_ERROR_LEN		255
+#define MAX_TAGS			6
 
 // Web API
 #define MAX_URL_LEN			128
@@ -38,12 +39,25 @@
 #define WAPI_USERAGENT		"Valve/Steam HTTP Client 1.0"
 
 // Workshop tag names
-#define TAG_Classic			"Classic"
-#define TAG_Deathmatch		"Deathmatch"
-#define TAG_Demolition		"Demolition"
-#define TAG_Armsrace		"Armsrace"
-#define TAG_Hostage			"Hostage"
-#define TAG_Custom			"Custom"
+enum
+{
+	MapTag_Classic = 0,
+	MapTag_Deathmatch = 1,
+	MapTag_Demolition = 2,
+	MapTag_Armsrace = 3,
+	MapTag_Hostage = 4,
+	MapTag_Custom = 5
+}
+
+new const String:g_Tags[MAX_TAGS][MAX_ATTRIB_LEN] =
+{
+	"Classic",
+	"Deathmatch",
+	"Demolition",
+	"Armsrace",
+	"Hostage",
+	"Custom"
+};
 
 // Map Chooser
 #define PLUGIN_MC			"mapchooser"

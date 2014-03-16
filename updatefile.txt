@@ -4,10 +4,10 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.10.1"
+			"Latest"	"0.10.2"
 		}
 		
-		"Notes"		"Marked mapchooser natives as optional"
+		"Notes"		"Minor internal modifications"
 	}
 	
 	"Files"
