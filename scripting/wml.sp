@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.10.2"
+#define PLUGIN_VERSION 		"0.11.0"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -82,6 +82,8 @@ new Handle:g_cvarGameMode = INVALID_HANDLE;
 new Handle:g_cvarAutoLoad = INVALID_HANDLE;
 new Handle:g_cvarArmsraceWeapon = INVALID_HANDLE;
 new Handle:g_cvarNominateAll = INVALID_HANDLE;
+new Handle:g_cvarMapcyclefile = INVALID_HANDLE;
+new Handle:g_cvarUseMapcyclefile = INVALID_HANDLE;
 
 // Menu
 new Handle:g_MapMenu = INVALID_HANDLE;
@@ -200,6 +202,12 @@ public OnPluginStart()
 		FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	if (g_cvarNominateAll == INVALID_HANDLE)
 		LogError("Couldn't register 'sm_wml_nominate_all_maps'!");
+	// Write custom mapcycle file to use for 3rd party plugins
+	g_cvarUseMapcyclefile = CreateConVar("sm_wml_override_mapcycle", "1",
+		"Set mapcyclefile to workshop customized version <1 = Enabled/Default, 0 = Disabled>",
+		FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	if (g_cvarUseMapcyclefile == INVALID_HANDLE)
+		LogError("Couldn't register 'sm_wml_override_mapcycle'!");
 	
 	// *** Cmds ***
 	RegAdminCmd("sm_wml", Cmd_DisplayMapList, ADMFLAG_CHANGEMAP, 
@@ -224,6 +232,10 @@ public OnPluginStart()
 		HookConVarChange(g_cvarGameMode, OnConvarChanged);
 	else
 		LogError("Convar 'game_mode' not found! Are you running CS:GO?");
+	// Get mapcyclefile to nominate workshop maps
+	g_cvarMapcyclefile = FindConVar("mapcyclefile");
+	if (g_cvarMapcyclefile == INVALID_HANDLE)
+		LogError("Convar 'mapcyclefile' not found, can't nominate maps!");
 		
 	// Intercept round end for mapchooser
 	HookEvent("cs_win_panel_match", Event_GameEnd, EventHookMode_PostNoCopy);
@@ -245,11 +257,13 @@ public OnPluginStart()
  */
 public OnConfigsExecuted()
 {
-	// Start fetching content if wished by user
+	// Refresh map metadata if wished by user
 	if (GetConVarBool(g_cvarAutoLoad))
 		GenerateMapList();
-	else
-		LogMessage("Database won't be refreshed because 'sm_wml_autoreload' is 0");
+	
+	// Generate mapcyclefile for 3rd party plugins
+	if (GetConVarBool(g_cvarUseMapcyclefile))
+		SetMapcycleFile();
 }
 
 /*
@@ -320,8 +334,6 @@ public OnMapStart()
 		g_IsArmsrace = true;
 	else
 		g_IsArmsrace = false;
-	
-	// no return required
 }
 
 /*
@@ -567,3 +579,36 @@ stock GenerateMapList()
 	ReadFolder(WORKSHOP_BASE_DIR);
 }
 
+stock SetMapcycleFile()
+{
+	if (g_cvarMapcyclefile == INVALID_HANDLE)
+		return;
+		
+	new String:path[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, path, sizeof(path), "%s/%s", WML_TMP_DIR, "wml.mapcycle.txt");
+	
+	// Detect current mode to query only matching maps
+	switch (GetMode())
+	{
+		case NextMapMode_Casual:
+			CreateMapcycleFile(g_Tags[MapTag_Classic], path);
+		case NextMapMode_Competitive:
+			CreateMapcycleFile(g_Tags[MapTag_Hostage], path);
+		case NextMapMode_Armsrace:
+			CreateMapcycleFile(g_Tags[MapTag_Armsrace], path);
+		case NextMapMode_Demolition:
+			CreateMapcycleFile(g_Tags[MapTag_Demolition], path);
+		case NextMapMode_Deathmatch:
+			CreateMapcycleFile(g_Tags[MapTag_Deathmatch], path);
+		case NextMapMode_Custom:
+			CreateMapcycleFile(g_Tags[MapTag_Custom], path);
+		default:
+		{
+			LogError("%T", "Unknown Game Mode Error", LANG_SERVER);
+			return;
+		}
+	}
+	
+	// Set new mapcycle file
+	SetConVarString(g_cvarMapcyclefile, path);
+}

@@ -1,7 +1,7 @@
 /*
  * Builds map category top-level menu.
  */
-Handle:BuildCategoryMenu()
+stock Handle:BuildCategoryMenu()
 {
 	// Create main menu handle
 	new Handle:menu = CreateMenu(Menu_SelectedCategory);
@@ -74,7 +74,7 @@ public Menu_SelectedCategory(Handle:menu, MenuAction:action, param1, param2)
 /*
  * Build simple list-style map chooser menu.
  */
-Handle:BuildMapMenu(String:category[])
+stock Handle:BuildMapMenu(String:category[])
 {
 	// Create main menu handle
 	new Handle:menu = CreateMenu(Menu_SelectedMap);

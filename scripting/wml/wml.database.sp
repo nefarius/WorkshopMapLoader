@@ -6,7 +6,7 @@
 /*
  * Create database tables if they don't exist.
  */
-DB_CreateTables()
+stock DB_CreateTables()
 {
 	if (g_dbiStorage == INVALID_HANDLE)
 		return;
@@ -30,7 +30,7 @@ DB_CreateTables()
 /*
  * Removes an entry identified by Id if tag-less.
  */
-DB_RemoveUntagged(id)
+stock DB_RemoveUntagged(id)
 {
 	if (g_dbiStorage == INVALID_HANDLE)
 		return;
@@ -48,7 +48,7 @@ DB_RemoveUntagged(id)
 /*
  * Adds skeleton of new map to database.
  */
- DB_AddNewMap(id, String:file[])
+ stock DB_AddNewMap(id, String:file[])
  {
 	if (g_dbiStorage == INVALID_HANDLE)
 		return;
@@ -71,7 +71,7 @@ DB_RemoveUntagged(id)
  /*
  * Adds title to map with specified id.
  */
- DB_SetMapTitle(id, String:title[])
+ stock DB_SetMapTitle(id, String:title[])
  {
 	if (g_dbiStorage == INVALID_HANDLE)
 		return;
@@ -94,7 +94,7 @@ DB_RemoveUntagged(id)
  /*
  * Adds tag to map with specified id.
  */
- DB_SetMapTag(id, String:tag[])
+ stock DB_SetMapTag(id, String:tag[])
  {
 	if (g_dbiStorage == INVALID_HANDLE)
 		return;
@@ -119,7 +119,7 @@ DB_RemoveUntagged(id)
 /*
  * Helper to get local map path from ID.
  */
-bool:DB_GetMapPath(id, String:path[])
+stock bool:DB_GetMapPath(id, String:path[])
 {
 	if (g_dbiStorage == INVALID_HANDLE)
 		return false;

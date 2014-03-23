@@ -54,11 +54,17 @@ stock ReadFolder(String:path[])
 	CloseHandle(dirh);
 }
 
+/*
+ * Returns file system path to temporary Kv file.
+ */
 stock GetTempFilePath(String:path[], maxsize, const String:id[])
 {
 	BuildPath(Path_SM, path, maxsize, "%s/%s.txt", WML_TMP_DIR, id);
 }
 
+/*
+ * Browses through metadata Kv file and adds to database.
+ */
 stock InterpretTempFile(const String:path[], const String:id[])
 {
 	// Begin parse response
@@ -78,4 +84,57 @@ stock InterpretTempFile(const String:path[], const String:id[])
 	
 	// Delete (temporary) Kv file
 	DeleteFile(path);
+}
+
+/*
+ * Creates a custom mapcycle file filtered by game mode (tag).
+ */
+stock CreateMapcycleFile(const String:tag[], const String:path[])
+{
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+		
+	if (g_cvarMapcyclefile == INVALID_HANDLE)
+		return;
+	
+	new Handle:file = OpenFile(path, "wt");
+	if (file == INVALID_HANDLE)
+	{
+		LogError("Couldn't create '%s', mapcyclefile unchanged");
+		return;
+	}
+		
+	new Handle:h_Query = INVALID_HANDLE;
+	decl String:query[MAX_QUERY_LEN];
+	decl String:map[PLATFORM_MAX_PATH];
+	
+	if (GetConVarBool(g_cvarNominateAll))
+	{
+		// Nominate all maps
+		Format(query, sizeof(query), " \
+			SELECT 'workshop/' || Id || '/' || Map \
+			FROM wml_workshop_maps;");
+	}
+	else
+	{
+		// Nominate only maps matching the supplied tag
+		Format(query, sizeof(query), " \
+			SELECT 'workshop/' || Id || '/' || Map \
+			FROM wml_workshop_maps WHERE Tag LIKE '%s';", tag);
+	}
+	
+	// Enumerate through results and write to file
+	SQL_LockDatabase(g_dbiStorage);
+	h_Query = SQL_Query(g_dbiStorage, query);
+	if (h_Query != INVALID_HANDLE)
+	{
+		while (SQL_FetchRow(h_Query))
+		{
+			SQL_FetchString(h_Query, 0, map, sizeof(map));
+			WriteFileLine(file, map);
+		}
+	}
+	SQL_UnlockDatabase(g_dbiStorage);
+	CloseHandle(h_Query);
+	CloseHandle(file);
 }

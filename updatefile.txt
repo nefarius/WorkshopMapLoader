@@ -4,10 +4,14 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.10.2"
+			"Latest"	"0.11.0"
 		}
 		
-		"Notes"		"Minor internal modifications"
+		"Notes"		"Added support for custom mapcyclefile to automate map nominations"
+		"Notes"		"Added new Cvar sm_wml_override_mapcycle to control this behaviour"
+		"Notes"		"Works with all plugins using ReadMapList(...) like:"
+		"Notes"		"    - MapChooser"
+		"Notes"		"    - Nominations"
 	}
 	
 	"Files"
