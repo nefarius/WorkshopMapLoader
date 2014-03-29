@@ -136,8 +136,7 @@ public Menu_SelectedMap(Handle:menu, MenuAction:action, param1, param2)
 					if (g_cvarChangeMode != INVALID_HANDLE)
 						if (GetConVarBool(g_cvarChangeMode))
 						{
-							// TODO: display name instead of index
-							LogMessage("Changing mode to: %d", g_SelectedMode);
+							LogMessage("Changing mode to: %s", g_Tags[g_SelectedMode]);
 							ChangeMode(g_SelectedMode);
 						}
 					

@@ -4,14 +4,10 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.11.0"
+			"Latest"	"0.12.0"
 		}
 		
-		"Notes"		"Added support for custom mapcyclefile to automate map nominations"
-		"Notes"		"Added new Cvar sm_wml_override_mapcycle to control this behaviour"
-		"Notes"		"Works with all plugins using ReadMapList(...) like:"
-		"Notes"		"    - MapChooser"
-		"Notes"		"    - Nominations"
+		"Notes"		"On map change the name of the target game mode is now logged instead of the index"
 	}
 	
 	"Files"

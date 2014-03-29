@@ -29,10 +29,10 @@ enum
 enum
 {
 	NextMapMode_Casual		= 0,
-	NextMapMode_Competitive	= 1,
-	NextMapMode_Armsrace	= 2,
-	NextMapMode_Demolition	= 3,
-	NextMapMode_Deathmatch	= 4,
+	NextMapMode_Competitive	= 4,
+	NextMapMode_Armsrace	= 3,
+	NextMapMode_Demolition	= 2,
+	NextMapMode_Deathmatch	= 1,
 	NextMapMode_Custom		= 5,
 }
  
