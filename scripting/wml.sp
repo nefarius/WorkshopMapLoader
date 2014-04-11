@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.12.0"
+#define PLUGIN_VERSION 		"0.12.1"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -66,7 +66,7 @@ new bool:g_IsVoteInTriggered = false;
 
 // Updater
 #define PLUGIN_UPDATER		"updater"
-#define UPDATE_URL			"http://nefarius.at/wml/updatefile.txt"
+#define UPDATE_URL			"https://git.nefarius.at/WorkshopMapLoader/master/updatefile.txt"
 
 // Database
 new Handle:g_dbiStorage = INVALID_HANDLE;

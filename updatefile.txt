@@ -4,10 +4,10 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.12.0"
+			"Latest"	"0.12.1"
 		}
 		
-		"Notes"		"On map change the name of the target game mode is now logged instead of the index"
+		"Notes"		"All future updates are now fetched via HTTPS"
 	}
 	
 	"Files"
