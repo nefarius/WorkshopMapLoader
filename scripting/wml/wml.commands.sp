@@ -128,7 +128,6 @@ public Action:Cmd_ReloadMapList(client, args)
 {
 	PrintToConsole(client, "[WML] %t", "Refreshing Map Details");
 	GenerateMapList();
-	PrintToConsole(client, "[WML] %t", "Refreshing Map Details Finished");
 	
 	return Plugin_Handled;
 }
