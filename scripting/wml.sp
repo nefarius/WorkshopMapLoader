@@ -16,9 +16,11 @@
 #include <mapchooser>
 #include <updater>
 #define REQUIRE_PLUGIN
-#include <webternet>
+#undef REQUIRE_EXTENSIONS
+#include <system2>
+#include <cURL>
 
-#define PLUGIN_VERSION 		"1.0.0"
+#define PLUGIN_VERSION 		"0.12.1"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -34,6 +36,7 @@
 // Web API
 #define MAX_URL_LEN			128
 #define MAX_POST_LEN		MAX_URL_LEN
+#define WAPI_USERAGENT		"Valve/Steam HTTP Client 1.0"
 
 // Workshop tag names
 enum
