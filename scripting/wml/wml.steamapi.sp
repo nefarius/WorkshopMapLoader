@@ -60,7 +60,7 @@ stock GetPublishedFileDetails(const String:id[])
 	}
 }
 
-public OnWebternetComplete(Handle:session, status, Handle:downloader, any:data)
+public OnWebternetComplete(Handle:session, bool:succeeded, Handle:downloader, any:data)
 {
 	CloseHandle(downloader);
 	
@@ -71,7 +71,7 @@ public OnWebternetComplete(Handle:session, status, Handle:downloader, any:data)
 	ReadPackString(data, id, sizeof(id));
 	CloseHandle(data);
 
-	if (status == HTTP_OK)
+	if (succeeded)
 	{
 		LogMessage("Successfully received file details for ID %s", id);
 	
