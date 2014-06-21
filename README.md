@@ -88,13 +88,10 @@ Optional Dependencies
 
 Installation/Requirements
 -------------------------
-1. You should have at least SourceMod v1.5.3
-2. Your server must be running at least one of the following extensions:
- * cURL (recommended)
- * System2
-3. Write-Permissions to `sourcemod/data` and  `sourcemod/data/sqlite` directory.
-4. Download the [latest archive](https://github.com/nefarius/WorkshopMapLoader/archive/master.zip).
-5. Extract the contents of `WorkshopMapLoader-master` into your servers `csgo/addons/sourcemod` directory.
-6. Restart your server or load the plugin by hand.
-7. Adjust the configuration file to your needs or just go with the defaults.
-8. Leave feedback!
+1. You should have at least SourceMod v1.6.x-DEV
+2. Write-Permissions to `sourcemod/data` and  `sourcemod/data/sqlite` directory.
+3. Download the [latest archive](https://github.com/nefarius/WorkshopMapLoader/archive/master.zip).
+4. Extract the contents of `WorkshopMapLoader-master` into your servers `csgo/addons/sourcemod` directory.
+5. Restart your server or load the plugin by hand.
+6. Adjust the configuration file to your needs or just go with the defaults.
+7. Leave feedback!
