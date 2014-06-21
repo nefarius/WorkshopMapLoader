@@ -34,7 +34,7 @@ Commands
 * **sm_wml_reload** refreshes the map list (useful to be triggered by the admin after the server has downloaded new workshop maps)
 * **sm_wml_rebuild** dumps the database content and rebuilds it from scratch
 * **sm_wml_vote_now** requests an instant next map vote
-sm_wml_nominate_random_maps will nominate a given amount of random maps from the database for the next vote. It's behavior is controlled by the sm_wml_nominate_* Cvars.
+sm_wml_nominate_random_maps will nominate a given amount of random maps from the database for the next vote. It's behavior is controlled by the `sm_wml_nominate_*` Cvars.
 
 Snippet for your *adminmenu_custom.txt*:
 ```
