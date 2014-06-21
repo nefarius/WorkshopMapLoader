@@ -68,4 +68,9 @@
 	{
 		"en"			"No database connection!"
 	}
+	
+	"Rebuilding Database"
+	{
+		"en"			"Rebuilding database content..."
+	}
 }

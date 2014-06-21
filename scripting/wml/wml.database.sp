@@ -153,3 +153,20 @@ stock bool:DB_GetMapPath(id, String:path[])
 	return true;
 }
 
+/*
+ * Create database tables if they don't exist.
+ */
+stock DB_PurgeTables()
+{
+	if (g_dbiStorage == INVALID_HANDLE)
+		return;
+
+	new String:error[MAX_ERROR_LEN];
+
+	if (!SQL_FastQuery(g_dbiStorage, "\
+		DELETE FROM wml_workshop_maps;"))
+	{
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		SetFailState("Deleting wml_maps_all failed: %s", error);
+	}
+}

@@ -4,7 +4,7 @@
 	{
 		"Version"
 		{
-			"Latest"	"1.0.0"
+			"Latest"	"1.0.1"
 		}
 		
 		"Notes"		"This release only works on the latest SourceMod 1.6.x build"

@@ -149,3 +149,11 @@ public Action:Cmd_DisplayMapList(client, args)
 	return Plugin_Handled;
 }
 
+public Action:Cmd_RebuildMapList(client, args)
+{
+	PrintToConsole(client, "[WML] %t", "Rebuilding Database");
+	DB_PurgeTables();
+	GenerateMapList();
+
+	return Plugin_Handled;
+}
