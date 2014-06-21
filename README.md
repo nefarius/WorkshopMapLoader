@@ -1,5 +1,5 @@
-WorkshopMapLoader
-=================
+Workshop Map Loader
+===================
 This is a SourceMod plugin for Counter-Strike: Global Offensive. Head over to the [Allied Modders Forum Thread](https://forums.alliedmods.net/showthread.php?p=2081908) for more information.
 
 **This branch depends on [this pull request](https://github.com/alliedmodders/sourcemod/pull/30) which hasn't yet been accepted. You may not be able to use this version of the plugin until you have the latest `webternet.ext.dll`/`.so`!**
