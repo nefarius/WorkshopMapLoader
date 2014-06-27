@@ -4,10 +4,13 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.12.1"
+			"Latest"	"1.0.1"
 		}
 		
-		"Notes"		"All future updates are now fetched via HTTPS"
+		"Notes"		"This release only works on the latest SourceMod 1.6.x build"
+		"Notes"		"  - Removed cURL extension dependency"
+		"Notes"		"  - Removed System2 extension dependency"
+		"Notes"		"  - Added Webternet extension dependency"
 	}
 	
 	"Files"
@@ -22,11 +25,9 @@
 		"Source"	"Path_SM/scripting/wml.sp"
 		"Source"	"Path_SM/scripting/wml/wml.adminmenu.sp"
 		"Source"	"Path_SM/scripting/wml/wml.commands.sp"
-		"Source"	"Path_SM/scripting/wml/wml.curl.sp"
 		"Source"	"Path_SM/scripting/wml/wml.database.sp"
 		"Source"	"Path_SM/scripting/wml/wml.filesystem.sp"
 		"Source"	"Path_SM/scripting/wml/wml.gamemode.sp"
 		"Source"	"Path_SM/scripting/wml/wml.steamapi.sp"
-		"Source"	"Path_SM/scripting/wml/wml.system2.sp"
 	}
 }
