@@ -4,13 +4,10 @@
 	{
 		"Version"
 		{
-			"Latest"	"1.0.1"
+			"Latest"	"0.13.0"
 		}
 		
-		"Notes"		"This release only works on the latest SourceMod 1.6.x build"
-		"Notes"		"  - Removed cURL extension dependency"
-		"Notes"		"  - Removed System2 extension dependency"
-		"Notes"		"  - Added Webternet extension dependency"
+		"Notes"		"Added new command sm_wml_rebuild to rebuild the database from scratch"
 	}
 	
 	"Files"

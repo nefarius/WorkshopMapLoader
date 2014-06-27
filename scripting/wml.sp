@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.12.1"
+#define PLUGIN_VERSION 		"0.13.0"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -214,6 +214,8 @@ public OnPluginStart()
 		"Display map list of workshop maps");
 	RegAdminCmd("sm_wml_reload", Cmd_ReloadMapList, ADMFLAG_CHANGEMAP, 
 		"(Re)download map details from Steam");
+	RegAdminCmd("sm_wml_rebuild", Cmd_RebuildMapList, ADMFLAG_CHANGEMAP,
+		"Purges database content and downloads it freshly from Steam");
 	RegAdminCmd("sm_wml_vote_now", Cmd_VoteNow, ADMFLAG_CHANGEMAP, 
 		"Bring up map vote menu");
 	RegAdminCmd("sm_wml_nominate_random_maps", Cmd_NominateRandom, ADMFLAG_CHANGEMAP, 
