@@ -112,14 +112,14 @@ stock CreateMapcycleFile(const String:tag[], const String:path[])
 	{
 		// Nominate all maps
 		Format(query, sizeof(query), " \
-			SELECT 'workshop/' || Id || '/' || Map \
+			SELECT Map \
 			FROM wml_workshop_maps;");
 	}
 	else
 	{
 		// Nominate only maps matching the supplied tag
 		Format(query, sizeof(query), " \
-			SELECT 'workshop/' || Id || '/' || Map \
+			SELECT Map \
 			FROM wml_workshop_maps WHERE Tag LIKE '%s';", tag);
 	}
 	

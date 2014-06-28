@@ -137,7 +137,7 @@ stock bool:DB_GetMapPath(id, String:path[])
 	{
 		decl String:error[MAX_ERROR_LEN];
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		PrintToServer("Failed setting map tag (error: %s)", error);
+		PrintToServer("Failed getting map path (error: %s)", error);
 	}
 	SQL_UnlockDatabase(g_dbiStorage);
 			
@@ -153,8 +153,42 @@ stock bool:DB_GetMapPath(id, String:path[])
 	return true;
 }
 
+stock bool:DB_GetMapName(id, String:map[])
+{
+	if (g_dbiStorage == INVALID_HANDLE)
+		return false;
+		
+	new Handle:h_Query = INVALID_HANDLE;
+	decl String:query[MAX_QUERY_LEN];
+	
+	Format(query, sizeof(query), " \
+		SELECT Map \
+		FROM wml_workshop_maps WHERE Id = %d;", id);
+		
+	SQL_LockDatabase(g_dbiStorage);
+	h_Query = SQL_Query(g_dbiStorage, query);
+	if (h_Query == INVALID_HANDLE)
+	{
+		decl String:error[MAX_ERROR_LEN];
+		SQL_GetError(g_dbiStorage, error, sizeof(error));
+		PrintToServer("Failed getting map name (error: %s)", error);
+	}
+	SQL_UnlockDatabase(g_dbiStorage);
+			
+	if (!SQL_FetchRow(h_Query))
+	{
+		CloneHandle(h_Query);
+		return false;
+	}
+	
+	SQL_FetchString(h_Query, 0, map, PLATFORM_MAX_PATH + 1);
+	CloseHandle(h_Query);
+	
+	return true;
+}
+
 /*
- * Create database tables if they don't exist.
+ * Purge table content.
  */
 stock DB_PurgeTables()
 {
@@ -167,6 +201,6 @@ stock DB_PurgeTables()
 		DELETE FROM wml_workshop_maps;"))
 	{
 		SQL_GetError(g_dbiStorage, error, sizeof(error));
-		SetFailState("Deleting wml_maps_all failed: %s", error);
+		SetFailState("Deleting wml_workshop_maps failed: %s", error);
 	}
 }

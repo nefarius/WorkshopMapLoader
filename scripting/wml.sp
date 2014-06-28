@@ -20,7 +20,7 @@
 #include <system2>
 #include <cURL>
 
-#define PLUGIN_VERSION 		"0.13.0"
+#define PLUGIN_VERSION 		"0.14.0b"
 #define PLUGIN_SHORT_NAME	"wml"
 #define WORKSHOP_BASE_DIR 	"maps/workshop"
 #define WML_TMP_DIR			"data/wml"
@@ -450,7 +450,9 @@ public Action:PerformMapChange(Handle:timer, Handle:pack)
 		case OSType_Windows:
 			ForceChangeLevel(map, "Workshop Map Loader");
 		case OSType_Linux:
-			ServerCommand("changelevel2 %s", map);
+			// NOTE: fix not needed any more?
+			//ServerCommand("changelevel2 %s", map);
+			ForceChangeLevel(map, "Workshop Map Loader");
 		case OSType_Unknown:
 			LogError("Couldn't detect operating system! Maybe missing wml.os.gamedata.txt?");
 	}

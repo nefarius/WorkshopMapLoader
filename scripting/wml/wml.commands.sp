@@ -63,14 +63,14 @@ public Action:Cmd_NominateRandom(client, args)
 	{
 		// Nominate all maps
 		Format(query, sizeof(query), " \
-			SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
+			SELECT Map FROM wml_workshop_maps \
 			ORDER BY RANDOM() LIMIT %d;", count);
 	}
 	else
 	{
 		// Nominate only maps matching the current game mode
 		Format(query, sizeof(query), " \
-			SELECT 'workshop/' || Id || '/' || Map FROM wml_workshop_maps \
+			SELECT Map FROM wml_workshop_maps \
 			WHERE Tag = \"%s\" \
 			ORDER BY RANDOM() LIMIT %d;", mode, count);
 	}
@@ -128,7 +128,6 @@ public Action:Cmd_ReloadMapList(client, args)
 {
 	PrintToConsole(client, "[WML] %t", "Refreshing Map Details");
 	GenerateMapList();
-	PrintToConsole(client, "[WML] %t", "Refreshing Map Details Finished");
 	
 	return Plugin_Handled;
 }

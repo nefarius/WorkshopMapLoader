@@ -125,7 +125,7 @@ public Menu_SelectedMap(Handle:menu, MenuAction:action, param1, param2)
 		if (GetMenuItem(menu, param2, id, MAX_ID_LEN))
 		{
 			new String:map[PLATFORM_MAX_PATH + 1];
-			if (DB_GetMapPath(StringToInt(id), map))
+			if (DB_GetMapName(StringToInt(id), map))
 			{
 				// Send info to client
 				PrintToChatAll("[WML] Changing map to %s", map);
