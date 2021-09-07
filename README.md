@@ -17,11 +17,11 @@ Features
 
 The Top-Level menu is dynamically built depending on your servers' workshop maps and their community tags:
 
-![Admin menu](../../assets/admin.jpg)
+![Admin menu](assets/admin.JPG)
 
 Each category hosts the corresponding map:
 
-![Category menu](../../assets/category.jpg)
+![Category menu](assets/category.JPG)
 
 Note, that a map may appear in multiple categories depending of it's tags.
 
@@ -29,7 +29,7 @@ Note, that a map may appear in multiple categories depending of it's tags.
 
 It's possible to interact with the stock MapChooser plugin or the [MapChooser Extended](https://forums.alliedmods.net/showthread.php?t=156974) plugin.
 
-![Vote menu](../../assets/vote.jpg)
+![Vote menu](assets/vote.JPG)
 
 Commands
 --------
